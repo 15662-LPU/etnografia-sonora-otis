@@ -133,7 +133,7 @@
     @keyframes spotify-pulse { 0%,100% { box-shadow: 0 0 0 0 #1db95488; } 50% { box-shadow: 0 0 0 8px #1db95400; } }
 
     /* Popup */
-    .maplibregl-popup-content { background: #161b22 !important; border: 1px solid #30363d; border-radius: 10px !important; padding: 16px !important; box-shadow: 0 8px 32px #000a !important; min-width: 280px; max-width: 320px; max-height: 85vh; overflow-y: auto; }
+    .maplibregl-popup-content { background: #161b22 !important; border: 1px solid #30363d; border-radius: 10px !important; padding: 16px !important; box-shadow: 0 8px 32px #000a !important; min-width: 280px; max-width: 320px; max-height: 85vh; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
     .maplibregl-popup-tip { display: none !important; }
     .maplibregl-popup-close-button { color: #f0f6fc !important; font-size: 18px !important; top: 8px !important; right: 10px !important; background: rgba(0,0,0,0.45) !important; border-radius: 50% !important; width: 26px !important; height: 26px !important; line-height: 26px !important; text-align: center !important; z-index: 20 !important; position: absolute !important; }
     .popup-category { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
@@ -225,6 +225,9 @@
     .btn-cancel { padding: 9px 16px; background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; font-size: .85rem; cursor: pointer; font-family: inherit; }
     .btn-cancel:hover { background: #30363d; }
     .form-hint { color: #484f58; font-size: .68rem; margin-top: 4px; display: block; }
+
+    /* Tooltip: oculto en dispositivos táctiles (no hace falta hover) */
+    @media (hover: none) { #map-tooltip { display: none !important; } }
 
     /* Mobile nav — oculto en escritorio */
     #mobile-nav { display: none; }
@@ -2243,8 +2246,18 @@ map.on('load', function() {
     });
   });
 
-  /* Clic en PUNTO INDIVIDUAL — abrir popup */
+  /* Clic/tap en PUNTO INDIVIDUAL — abrir popup.
+     En móvil el primer toque dispara mouseenter (tooltip) y el segundo dispara click.
+     Con touchend respondemos al primer toque; el flag evita doble apertura. */
+  var _ptTouchTs = 0;
+  map.on('touchend', 'unclustered-point', function(e) {
+    _ptTouchTs = Date.now();
+    var props = e.features[0].properties;
+    var p = SOUND_POINTS.find(function(sp) { return sp.id === props.id; });
+    if (p) flyToPoint(p);
+  });
   map.on('click', 'unclustered-point', function(e) {
+    if (Date.now() - _ptTouchTs < 600) return; // ya manejado por touchend
     var props = e.features[0].properties;
     var p = SOUND_POINTS.find(function(sp) { return sp.id === props.id; });
     if (p) flyToPoint(p);
