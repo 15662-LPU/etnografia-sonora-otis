@@ -761,6 +761,14 @@
   </div>
 </div>
 
+<!-- AUDIO SHEET (móvil) — panel fijo fuera del DOM de MapLibre -->
+<div id="audio-sheet" aria-hidden="true">
+  <div id="audio-sheet-bar">
+    <button id="audio-sheet-close" aria-label="Cerrar">&#10005; Cerrar</button>
+  </div>
+  <div id="audio-sheet-body"></div>
+</div>
+
 <script>
 /* TOKEN */
 /* MapLibre GL JS — sin token, tiles CARTO gratuitas */
@@ -2281,8 +2289,10 @@ function initPcMarker() {
   window._pcMarker = new maplibregl.Marker({ element: pcEl, anchor: 'center' })
     .setLngLat(p28.coords)
     .addTo(map);
-  pcEl.addEventListener('click',    function(e) { flyToPoint(p28); });
-  pcEl.addEventListener('touchend',  function(e) { e.preventDefault(); flyToPoint(p28); });
+  pcEl.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
+  pcEl.addEventListener('pointerup',   function(e) { e.stopPropagation(); });
+  pcEl.addEventListener('click',       function(e) { e.stopPropagation(); flyToPoint(p28); });
+  pcEl.addEventListener('touchend',    function(e) { e.preventDefault(); e.stopPropagation(); flyToPoint(p28); });
 }
 
 map.on('load', function() {
@@ -2421,7 +2431,7 @@ function flyToPoint(p) {
     sheetBody.scrollTop = 0;
   } else {
     /* Escritorio: popup flotante normal */
-    currentPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: true, maxWidth: '340px', offset: 20 })
+    currentPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: false, maxWidth: '340px', offset: 20 })
       .setLngLat(p.coords)
       .setHTML(buildPopupHTML(p))
       .addTo(map);
@@ -2836,12 +2846,5 @@ document.getElementById('modal-save').addEventListener('click', function() {
 })();
 </script>
 
-<!-- AUDIO SHEET (móvil) — panel fijo fuera del DOM de MapLibre -->
-<div id="audio-sheet" aria-hidden="true">
-  <div id="audio-sheet-bar">
-    <button id="audio-sheet-close" aria-label="Cerrar">&#10005; Cerrar</button>
-  </div>
-  <div id="audio-sheet-body"></div>
-</div>
 </body>
 </html>
