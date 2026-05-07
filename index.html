@@ -225,9 +225,19 @@
     .btn-cancel:hover { background: #30363d; }
     .form-hint { color: #484f58; font-size: .68rem; margin-top: 4px; display: block; }
 
-    @media (max-width: 600px) {
-      #sidebar { width: 100%; max-height: 40vh; min-width: unset; border-right: none; border-bottom: 1px solid #30363d; }
+    @media (max-width: 768px) {
       body { flex-direction: column; }
+      #sidebar {
+        width: 100%; min-width: 0;
+        max-height: 44vh;
+        border-right: none;
+        border-top: 1px solid #30363d;
+        overflow-y: auto;
+      }
+      #map { flex: 1; min-height: 0; }
+      .maplibregl-popup-content { max-width: 92vw !important; max-height: 55vh !important; }
+      #legend { display: none; }
+      #info-panel { display: none; }
     }
 
     /* =====================================================
@@ -1991,8 +2001,8 @@ function addMapLayers() {
     type: 'geojson',
     data: pointsToGeoJSON(SOUND_POINTS.filter(function(p) { return p.id !== 28; })),
     cluster: true,
-    clusterMaxZoom: 13,
-    clusterRadius: 45
+    clusterMaxZoom: 10,
+    clusterRadius: 28
   });
 
   /* Capa CLUSTERS — círculos que agrupan puntos cercanos */
@@ -2565,35 +2575,23 @@ document.getElementById('modal-save').addEventListener('click', function() {
   }
 
   /* ── AUDIO ────────────────────────────────────────────────── */
-  audio.muted  = false;
   audio.volume = 0.75;
-  audio.play().then(function () {
-    soundBtn.classList.remove('blocked');
-    sndIcon.textContent  = '🔊';
-    sndLabel.textContent = 'Silenciar';
-    startBlowing();
-  }).catch(function () {
-    audio.muted = true;
-    audio.play().catch(function () {});
-    soundBtn.classList.add('blocked');
-    sndIcon.innerHTML    = '&#128264;';
-    sndLabel.textContent = 'Activar sonido';
-    /* sin sonido → sin viento */
-  });
+  audio.muted  = false;
+
+  function setPlayUI()   { soundBtn.classList.remove('blocked'); sndIcon.textContent = '🔊'; sndLabel.textContent = 'Silenciar'; }
+  function setMuteUI()   { soundBtn.classList.add('blocked'); sndIcon.innerHTML = '&#128264;'; sndLabel.textContent = 'Activar sonido'; }
+  function setIdleUI()   { soundBtn.classList.add('blocked'); sndIcon.innerHTML = '&#9654;'; sndLabel.textContent = 'Reproducir'; }
+
+  audio.play().then(function () { setPlayUI(); startBlowing(); }).catch(function () { setIdleUI(); });
 
   soundBtn.addEventListener('click', function () {
-    if (audio.muted || audio.paused) {
-      audio.muted = false;
-      if (audio.paused) audio.play().catch(function () {});
-      soundBtn.classList.remove('blocked');
-      sndIcon.textContent  = '🔊';
-      sndLabel.textContent = 'Silenciar';
-      startBlowing();   /* viento retoma */
+    if (audio.paused) {
+      audio.muted = false; audio.volume = 0.75;
+      audio.play().then(function () { setPlayUI(); startBlowing(); }).catch(setIdleUI);
+    } else if (!audio.muted) {
+      audio.muted = true; setMuteUI(); stopBlowing();
     } else {
-      audio.muted = true;
-      sndIcon.innerHTML    = '&#128264;';
-      sndLabel.textContent = 'Activar sonido';
-      stopBlowing();    /* viento para */
+      audio.muted = false; setPlayUI(); startBlowing();
     }
   });
 
