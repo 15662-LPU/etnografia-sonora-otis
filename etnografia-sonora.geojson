@@ -1,0 +1,466 @@
+{
+  "type": "FeatureCollection",
+  "name": "Diarios Reflexivos Otis — Cobertura sonora del Huracan Otis",
+  "description": "27 registros sonoros ubicados segun el origen geografico del podcast, radio o artista que los produjo.",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.9047, 16.8447] },
+      "properties": {
+        "id": 1, "no_lista": 1,
+        "title": "Clavados al vacio: la Quebrada despues de Otis",
+        "location": "La Quebrada, Acapulco, Guerrero",
+        "category": "cultural",
+        "tipo_audio": "Podcast testimonial",
+        "categoria_preliminar": "Reconstruccion simbolica",
+        "recorder": "Asi como suena",
+        "date": "Nov 2023",
+        "duration": "32:42",
+        "tags": "La Quebrada, clavadistas, tradicion, Acapulco",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.8945, 16.8531] },
+      "properties": {
+        "id": 2, "no_lista": 2,
+        "title": "Ciclon Otis Acapulco",
+        "location": "Acapulco de Juarez, Guerrero",
+        "category": "urbano",
+        "tipo_audio": "Testimonio descriptivo",
+        "categoria_preliminar": "Devastacion inmediata",
+        "recorder": "Huracan Otis (podcast)",
+        "date": "Oct 2023",
+        "duration": "6:23",
+        "tags": "devastacion, categoria 5, Acapulco, testimonio",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.1332, 19.4326] },
+      "properties": {
+        "id": 3, "no_lista": 3,
+        "title": "59. El del huracan Otis",
+        "location": "Ciudad de Mexico",
+        "category": "cultural",
+        "tipo_audio": "Podcast reflexivo",
+        "categoria_preliminar": "Reflexion social",
+        "recorder": "Banal",
+        "date": "Nov 2023",
+        "duration": "39:28",
+        "tags": "reflexion social, medios, CDMX, cobertura",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.1664, 19.4284] },
+      "properties": {
+        "id": 4, "no_lista": 4,
+        "title": "112. Contradebate | Huracan Otis, fenomeno meteorologico unico",
+        "location": "Ciudad de Mexico",
+        "category": "urbano",
+        "tipo_audio": "Debate politico",
+        "categoria_preliminar": "Critica institucional",
+        "recorder": "Contralinea Audio",
+        "date": "Nov 2023",
+        "duration": "1:01:22",
+        "tags": "debate, institucional, critica, Contralinea",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.8600, 16.7900] },
+      "properties": {
+        "id": 5, "no_lista": 5,
+        "title": "Los efectos del huracan Otis a los empresarios de Acapulco",
+        "location": "Zona Diamante, Acapulco, Guerrero",
+        "category": "trabajo",
+        "tipo_audio": "Podcast economico",
+        "categoria_preliminar": "Impacto economico",
+        "recorder": "EL CEO",
+        "date": "Nov 2023",
+        "duration": "1:47",
+        "tags": "economia, turismo, empresarios, Zona Diamante",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.1500, 19.3600] },
+      "properties": {
+        "id": 6, "no_lista": 6,
+        "title": "Huracan Otis arraso con todo en Acapulco, incluso con la droga",
+        "location": "Ciudad de Mexico",
+        "category": "urbano",
+        "tipo_audio": "Cronica periodistica",
+        "categoria_preliminar": "Destruccion urbana",
+        "recorder": "Territorio Rojo / Nacion Criminal",
+        "date": "Nov 2023",
+        "duration": "4:26",
+        "tags": "cronica, crimen organizado, destruccion urbana, periodismo",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.2000, 19.4500] },
+      "properties": {
+        "id": 7, "no_lista": 7,
+        "title": "Huracan Otis: Acapulco, la destruccion de un paraiso",
+        "location": "Ciudad de Mexico",
+        "category": "urbano",
+        "tipo_audio": "Podcast analitico",
+        "categoria_preliminar": "Colapso territorial",
+        "recorder": "Complot Politica Ficcion",
+        "date": "Nov 2023",
+        "duration": "22:22",
+        "tags": "analisis, politica, colapso territorial, turismo",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.5004, 17.5517] },
+      "properties": {
+        "id": 8, "no_lista": 8,
+        "title": "Huracan Otis — Derecho en Contexto",
+        "location": "Chilpancingo, Guerrero",
+        "category": "urbano",
+        "tipo_audio": "Podcast juridico-social",
+        "categoria_preliminar": "Lectura institucional",
+        "recorder": "Derecho en Contexto",
+        "date": "Nov 2023",
+        "duration": "49:23",
+        "tags": "derecho, institucional, Guerrero, afectados",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.8600, 16.8900] },
+      "properties": {
+        "id": 9, "no_lista": 9,
+        "title": "Testimonio: Casa AFECTADA por el huracan Otis",
+        "location": "Col. Renacimiento, Acapulco, Guerrero",
+        "category": "trabajo",
+        "tipo_audio": "Testimonio ciudadano",
+        "categoria_preliminar": "Perdida habitacional",
+        "recorder": "Delirio Arquitectonico",
+        "date": "Nov 2023",
+        "duration": "12:38",
+        "tags": "vivienda, perdida habitacional, dano estructural, Renacimiento",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.9100, 16.8200] },
+      "properties": {
+        "id": 10, "no_lista": 10,
+        "title": "Ep. 32 | Vivimos un apocalipsis con el huracan Otis",
+        "location": "Acapulco de Juarez, Guerrero",
+        "category": "ritual",
+        "tipo_audio": "Testimonio vivencial",
+        "categoria_preliminar": "Trauma colectivo",
+        "recorder": "Radical Podcast",
+        "date": "Nov 2023",
+        "duration": "1:21:24",
+        "tags": "trauma colectivo, sobrevivientes, colapso, Acapulco",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.2800, 19.3700] },
+      "properties": {
+        "id": 11, "no_lista": 11,
+        "title": "Beneficios Fiscales para afectados por el huracan Otis — Educarte Fiscal",
+        "location": "Ciudad de Mexico",
+        "category": "trabajo",
+        "tipo_audio": "Podcast tecnico",
+        "categoria_preliminar": "Reconstruccion economica",
+        "recorder": "IMEFI TV",
+        "date": "Nov 2023",
+        "duration": "41:17",
+        "tags": "fiscal, beneficios, IMEFI, reconstruccion economica",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.5100, 17.5400] },
+      "properties": {
+        "id": 12, "no_lista": 12,
+        "title": "Huracan Otis - Resiliencia del estado de Guerrero",
+        "location": "Chilpancingo, Guerrero",
+        "category": "cultural",
+        "tipo_audio": "Podcast reflexivo",
+        "categoria_preliminar": "Resiliencia",
+        "recorder": "Huracan Otis – Resiliencia Guerrero",
+        "date": "Nov 2023",
+        "duration": "3:18",
+        "tags": "resiliencia, Guerrero, recuperacion, memoria",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.1250, 19.4600] },
+      "properties": {
+        "id": 13, "no_lista": 13,
+        "title": "71.- Huracan Otis, las victimas de siempre",
+        "location": "Ciudad de Mexico",
+        "category": "urbano",
+        "tipo_audio": "Podcast critico",
+        "categoria_preliminar": "Desigualdad social",
+        "recorder": "Utopia50",
+        "date": "Nov 2023",
+        "duration": "6:58",
+        "tags": "desigualdad, vulnerabilidad, critica social, victimas",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.8800, 16.8350] },
+      "properties": {
+        "id": 14, "no_lista": 14,
+        "title": "Acceso 95.7 EP128: El poder de la radio tras el huracan Otis",
+        "location": "Acapulco, Guerrero",
+        "category": "cultural",
+        "tipo_audio": "Radio / comunicacion",
+        "categoria_preliminar": "Fractura comunicacional",
+        "recorder": "Acceso 95.7",
+        "date": "Nov 2023",
+        "duration": "27:22",
+        "tags": "radio, emergencia, comunicacion, fractura comunicacional",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.1600, 19.4400] },
+      "properties": {
+        "id": 15, "no_lista": 15,
+        "title": "Las lecciones que nos dejo el huracan Otis en materia de riesgos asegurados",
+        "location": "Ciudad de Mexico",
+        "category": "trabajo",
+        "tipo_audio": "Radio reflexiva",
+        "categoria_preliminar": "Aprendizajes",
+        "recorder": "Parmenas Radio",
+        "date": "Dic 2023",
+        "duration": "27:48",
+        "tags": "seguros, riesgo, aprendizajes, finanzas",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.8750, 16.8650] },
+      "properties": {
+        "id": 16, "no_lista": 16,
+        "title": "Huracan Otis: Como se vio y se sintio la ayuda",
+        "location": "Acapulco de Juarez, Guerrero",
+        "category": "cultural",
+        "tipo_audio": "Podcast vivencial",
+        "categoria_preliminar": "Sensibilidad social",
+        "recorder": "Rapidamente y a la moda",
+        "date": "Nov 2023",
+        "duration": "15:53",
+        "tags": "ayuda humanitaria, solidaridad, colonias, organizacion",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.9000, 16.8600] },
+      "properties": {
+        "id": 17, "no_lista": 17,
+        "title": "Acapulco en el ojo del huracan Otis. Como reconstruirlo?",
+        "location": "Acapulco de Juarez, Guerrero",
+        "category": "urbano",
+        "tipo_audio": "Podcast testimonial",
+        "categoria_preliminar": "Experiencia territorial",
+        "recorder": "Palabras en Movimiento",
+        "date": "Nov 2023",
+        "duration": "49:12",
+        "tags": "reconstruccion, urbanismo, Acapulco, experiencia territorial",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.1550, 19.4200] },
+      "properties": {
+        "id": 18, "no_lista": 18,
+        "title": "Debemos centrar la discusion del Huracan Otis en el actuar de AMLO?",
+        "location": "Ciudad de Mexico",
+        "category": "urbano",
+        "tipo_audio": "Debate social",
+        "categoria_preliminar": "Debate publico",
+        "recorder": "Fuera de Tono",
+        "date": "Nov 2023",
+        "duration": "32:12",
+        "tags": "debate, AMLO, respuesta gubernamental, politica",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.1350, 19.4350] },
+      "properties": {
+        "id": 19, "no_lista": 19,
+        "title": "Reflexiones despues del Huracan Otis — la desigualdad en Mexico es asesina",
+        "location": "Ciudad de Mexico",
+        "category": "ritual",
+        "tipo_audio": "Podcast reflexivo",
+        "categoria_preliminar": "Elaboracion emocional",
+        "recorder": "Calabozos y Dragones",
+        "date": "Nov 2023",
+        "duration": "44:59",
+        "tags": "elaboracion emocional, desigualdad, duelo colectivo, reflexion",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-100.0833, 16.9833] },
+      "properties": {
+        "id": 20, "no_lista": 20,
+        "title": "Del huracan a la reconstruccion participativa: reflexiones a un ano de Otis",
+        "location": "Coyuca de Benitez, Guerrero",
+        "category": "trabajo",
+        "tipo_audio": "Podcast comunitario",
+        "categoria_preliminar": "Organizacion social",
+        "recorder": "Cooperacion Comunitaria",
+        "date": "Oct 2024",
+        "duration": "8:47",
+        "tags": "reconstruccion participativa, comunidad, Costa Grande, Guerrero",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.1450, 19.4200] },
+      "properties": {
+        "id": 21, "no_lista": 21,
+        "title": "Huracan Otis: las claves para evitar la tragedia",
+        "location": "Ciudad de Mexico",
+        "category": "natural",
+        "tipo_audio": "Podcast periodistico",
+        "categoria_preliminar": "Prevencion y alerta",
+        "recorder": "La Silla Rota",
+        "date": "Nov 2023",
+        "duration": "50:02",
+        "tags": "prevencion, alerta temprana, periodismo, SMN",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-100.3161, 25.6866] },
+      "properties": {
+        "id": 22, "no_lista": 22,
+        "title": "165 [Radio] Infraestructura y construccion: danos del huracan Otis",
+        "location": "Monterrey, Nuevo Leon",
+        "category": "trabajo",
+        "tipo_audio": "Radio tecnica",
+        "categoria_preliminar": "Reconstruccion fisica",
+        "recorder": "Viverent",
+        "date": "Nov 2023",
+        "duration": "25:02",
+        "tags": "infraestructura, construccion, inmobiliario, Monterrey",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.2100, 19.4100] },
+      "properties": {
+        "id": 23, "no_lista": 23,
+        "title": "La condicion humana ante tragedias como el huracan Otis",
+        "location": "Ciudad de Mexico",
+        "category": "ritual",
+        "tipo_audio": "Reflexion humana",
+        "categoria_preliminar": "Condicion humana",
+        "recorder": "Fernanda Familiar / Emilio Vallesvidrio",
+        "date": "Nov 2023",
+        "duration": "8:34",
+        "tags": "condicion humana, solidaridad, medios, reflexion",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.6011, 18.5571] },
+      "properties": {
+        "id": 24, "no_lista": 24,
+        "title": "Huracan Otis la ultima leccion",
+        "location": "Taxco, Guerrero",
+        "category": "cultural",
+        "tipo_audio": "Ensayo sonoro",
+        "categoria_preliminar": "Memoria y aprendizaje",
+        "recorder": "Escalona Poetas en extincion",
+        "date": "Nov 2023",
+        "duration": "18:04",
+        "tags": "ensayo, memoria, poesia, Guerrero",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.1800, 19.4150] },
+      "properties": {
+        "id": 25, "no_lista": 25,
+        "title": "Hubo suficiente tiempo para alertar sobre la amenaza del huracan Otis?",
+        "location": "Ciudad de Mexico",
+        "category": "natural",
+        "tipo_audio": "Periodismo critico",
+        "categoria_preliminar": "Responsabilidad estatal",
+        "recorder": "Aristegui",
+        "date": "Nov 2023",
+        "duration": "21:07",
+        "tags": "alerta temprana, responsabilidad estatal, SMN, Aristegui",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-99.5397, 18.3456] },
+      "properties": {
+        "id": 26, "no_lista": 26,
+        "title": "El Corrido del Huracan Otis",
+        "location": "Iguala, Guerrero",
+        "category": "cultural",
+        "tipo_audio": "Corrido popular",
+        "categoria_preliminar": "Narrativa popular",
+        "recorder": "Los Donnys de Guerrero",
+        "date": "Nov 2023",
+        "duration": "4:15",
+        "tags": "corrido, musica popular, Guerrero, narrativa popular",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-101.5547, 17.6404] },
+      "properties": {
+        "id": 27, "no_lista": 27,
+        "title": "Huracan Otis — Pavel Salinas y su Fugitivo Show",
+        "location": "Zihuatanejo, Guerrero",
+        "category": "cultural",
+        "tipo_audio": "Cancion popular",
+        "categoria_preliminar": "Memorias musicales",
+        "recorder": "Pavel Salinas y su Fugitivo Show",
+        "date": "Nov 2023",
+        "duration": "5:51",
+        "tags": "cancion, musica popular, Costa Grande, memorias musicales",
+        "spotify": "https://open.spotify.com/playlist/6Zm4zSxRdmkeMYYKrOqUoC"
+      }
+    }
+  ]
+}

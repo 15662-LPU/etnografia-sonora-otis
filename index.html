@@ -1,0 +1,2582 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Etnografía Sonora — México</title>
+
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; height: 100vh; display: flex; overflow: hidden; }
+    #cover-audio { display: none; }
+    #map { flex: 1; position: relative; min-width: 0; min-height: 0; }
+    #sidebar-header { padding: 20px 18px 14px; border-bottom: 1px solid #30363d; }
+    #sidebar-header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: #f0f6fc; }
+    #sidebar-header p { font-size: .78rem; color: #8b949e; margin-top: 4px; line-height: 1.4; }
+
+    /* Filtros */
+    #filters { padding: 12px 18px; border-bottom: 1px solid #30363d; display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter-btn { font-size: .72rem; padding: 4px 10px; border-radius: 20px; border: 1px solid transparent; cursor: pointer; transition: opacity .2s, transform .1s; font-weight: 600; letter-spacing: .03em; }
+    .filter-btn:hover { opacity: .85; transform: scale(1.04); }
+    .filter-btn.active { border-color: #fff4; }
+    #route-toggle.active { background: #1f6feb22; border-color: #1f6feb; color: #58a6ff; }
+
+    /* Busqueda */
+    #search-wrap { padding: 10px 18px; border-bottom: 1px solid #30363d; position: relative; }
+    #search-input { width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 7px 32px 7px 30px; color: #f0f6fc; font-size: .8rem; outline: none; transition: border-color .2s; font-family: inherit; }
+    #search-input:focus { border-color: #58a6ff; }
+    #search-input::placeholder { color: #484f58; }
+    #search-icon { position: absolute; left: 28px; top: 50%; transform: translateY(-50%); color: #484f58; font-size: 13px; pointer-events: none; }
+    #search-clear { position: absolute; right: 26px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #8b949e; cursor: pointer; font-size: 14px; display: none; line-height: 1; padding: 0; }
+    #no-results { padding: 24px 18px; text-align: center; color: #484f58; font-size: .8rem; display: none; }
+
+    /* Lista */
+    #point-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+    #point-list::-webkit-scrollbar { width: 5px; }
+    #point-list::-webkit-scrollbar-track { background: transparent; }
+    #point-list::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+    .point-item { padding: 11px 18px; cursor: pointer; border-left: 3px solid transparent; transition: background .15s, border-color .15s; display: flex; align-items: flex-start; gap: 10px; }
+    .point-item:hover, .point-item.active { background: #21262d; }
+    .point-item.active { border-left-color: var(--cat-color); }
+    .point-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cat-color); flex-shrink: 0; margin-top: 4px; box-shadow: 0 0 6px var(--cat-color); }
+    .point-item h3 { font-size: .85rem; font-weight: 600; color: #f0f6fc; line-height: 1.3; }
+    .point-item span { font-size: .72rem; color: #8b949e; }
+
+    /* Tooltip de hover en puntos del mapa */
+    #map-tooltip {
+      position: absolute; pointer-events: none; z-index: 6;
+      background: #161b22ee; border: 1px solid #30363d;
+      border-radius: 7px; padding: 7px 11px;
+      font-size: .73rem; color: #f0f6fc;
+      box-shadow: 0 4px 16px #0009;
+      max-width: 220px; opacity: 0;
+      transition: opacity .15s;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #map-tooltip.visible { opacity: 1; }
+    #map-tooltip .tt-title { font-weight: 700; margin-bottom: 2px; color: #f0f6fc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #map-tooltip .tt-meta { font-size: .67rem; color: #8b949e; }
+    #map-tooltip .tt-cat { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+
+    /* Timeline temporal */
+    #timeline-wrap { padding: 10px 18px 12px; border-bottom: 1px solid #30363d; }
+    #timeline-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: #484f58; font-weight: 700; margin-bottom: 8px; }
+    #timeline-track { position: relative; height: 3px; background: #21262d; border-radius: 2px; margin: 14px 0 18px; }
+    #timeline-fill { position: absolute; height: 100%; background: linear-gradient(90deg, #ff7b72, #ffa657, #58a6ff); border-radius: 2px; transition: left .25s, right .25s; }
+    .tl-dot { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 50%; background: #30363d; border: 2px solid #484f58; cursor: pointer; transition: background .2s, border-color .2s, transform .15s; z-index: 2; }
+    .tl-dot:hover, .tl-dot.active { transform: translate(-50%, -50%) scale(1.5); }
+    .tl-dot.active { border-color: var(--dot-color, #58a6ff); background: var(--dot-color, #58a6ff); }
+    .tl-dot-label { position: absolute; top: 10px; transform: translateX(-50%); font-size: .6rem; color: #484f58; white-space: nowrap; transition: color .2s; }
+    .tl-dot.active .tl-dot-label { color: var(--dot-color, #58a6ff); font-weight: 700; }
+    .tl-dot-count { position: absolute; bottom: 10px; transform: translateX(-50%); font-size: .58rem; color: #30363d; white-space: nowrap; }
+    .tl-dot.active .tl-dot-count { color: #8b949e; }
+    #timeline-all { display: block; width: 100%; margin-top: 4px; text-align: center; font-size: .68rem; color: #484f58; background: none; border: none; cursor: pointer; font-family: inherit; transition: color .15s; padding: 2px 0; }
+    #timeline-all:hover, #timeline-all.active { color: #58a6ff; font-weight: 700; }
+
+    /* Panel de estadísticas */
+    #stats-panel { border-bottom: 1px solid #30363d; overflow: hidden; transition: max-height .3s ease; max-height: 0; }
+    #stats-panel.open { max-height: 320px; }
+    #stats-panel-inner { padding: 10px 18px 14px; }
+    #stats-toggle { width: 100%; background: none; border: none; border-bottom: 1px solid #30363d; padding: 9px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: .75rem; font-weight: 600; color: #8b949e; font-family: inherit; transition: color .15s, background .15s; }
+    #stats-toggle:hover { color: #f0f6fc; background: #21262d; }
+    #stats-toggle .st-arrow { transition: transform .3s; font-size: .7rem; }
+    #stats-panel.open + * #stats-toggle .st-arrow, #stats-toggle.open .st-arrow { transform: rotate(180deg); }
+    .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; font-size: .72rem; }
+    .stat-label { color: #8b949e; }
+    .stat-value { color: #f0f6fc; font-weight: 700; }
+    .stat-bar-wrap { margin-bottom: 6px; }
+    .stat-bar-label { display: flex; justify-content: space-between; font-size: .67rem; color: #8b949e; margin-bottom: 2px; }
+    .stat-bar-bg { background: #21262d; border-radius: 3px; height: 5px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+    .stat-section-title { font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: #484f58; font-weight: 700; margin: 10px 0 6px; }
+
+    /* Footer del sidebar */
+    #sidebar-footer { padding: 10px 18px; border-top: 1px solid #30363d; display: flex; gap: 8px; }
+    .footer-btn { flex: 1; padding: 7px 6px; border-radius: 6px; border: 1px solid #30363d; background: #21262d; color: #8b949e; font-size: .72rem; cursor: pointer; font-family: inherit; font-weight: 600; transition: background .15s, color .15s; text-align: center; }
+    .footer-btn:hover { background: #30363d; color: #f0f6fc; }
+    .footer-btn.primary { background: #1f6feb22; border-color: #1f6feb; color: #58a6ff; }
+    .footer-btn.primary:hover { background: #1f6feb44; }
+
+    /* Mapa */
+    /* (rule moved to top for specificity) */
+
+    /* SIDEBAR */
+    #sidebar { width: 320px; min-width: 260px; background: #161b22; border-right: 1px solid #30363d; display: flex; flex-direction: column; z-index: 10; overflow: hidden; }
+    .custom-marker { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 8px #0008; transition: transform .2s; position: relative; }
+    .custom-marker:hover { transform: scale(1.2); }
+    .custom-marker.spotify-active { animation: spotify-pulse 2.5s infinite; }
+    @keyframes spotify-pulse { 0%,100% { box-shadow: 0 0 0 0 #1db95488; } 50% { box-shadow: 0 0 0 8px #1db95400; } }
+
+    /* Popup */
+    .maplibregl-popup-content { background: #161b22 !important; border: 1px solid #30363d; border-radius: 10px !important; padding: 16px !important; box-shadow: 0 8px 32px #000a !important; min-width: 280px; max-width: 320px; max-height: 85vh; overflow-y: auto; }
+    .maplibregl-popup-tip { display: none !important; }
+    .maplibregl-popup-close-button { color: #f0f6fc !important; font-size: 18px !important; top: 8px !important; right: 10px !important; background: rgba(0,0,0,0.45) !important; border-radius: 50% !important; width: 26px !important; height: 26px !important; line-height: 26px !important; text-align: center !important; z-index: 20 !important; position: absolute !important; }
+    .popup-category { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+    .popup-title { font-size: 1rem; font-weight: 700; color: #f0f6fc; margin-bottom: 3px; }
+    .popup-location { font-size: .75rem; color: #8b949e; margin-bottom: 10px; }
+    .popup-desc { font-size: .8rem; color: #c9d1d9; line-height: 1.5; margin-bottom: 10px; }
+    .popup-meta { font-size: .72rem; color: #8b949e; margin-bottom: 10px; display: flex; gap: 14px; flex-wrap: wrap; }
+
+    /* Spotify embed */
+    .spotify-wrap { margin-top: 10px; border-radius: 10px; overflow: hidden; }
+    .spotify-wrap iframe { display: block; width: 100%; border: none; border-radius: 10px; }
+    .spotify-no-audio { background: #0d1117; border: 1px dashed #30363d; border-radius: 8px; padding: 10px 12px; font-size: .72rem; color: #484f58; font-style: italic; margin-top: 10px; text-align: center; }
+    .spotify-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; font-size: .72rem; color: #1db954; text-decoration: none; font-weight: 600; }
+    .spotify-link:hover { text-decoration: underline; }
+
+    /* Audio OneDrive embed */
+    .audio-wrap { margin-top: 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 12px; }
+    .audio-wrap audio { width: 100%; margin-bottom: 8px; accent-color: #0078d4; }
+    .audio-link { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; color: #0078d4; text-decoration: none; font-weight: 600; }
+    .audio-link:hover { text-decoration: underline; }
+
+    /* Stats */
+    #stats { position: absolute; top: 12px; right: 12px; background: #161b22cc; backdrop-filter: blur(8px); border: 1px solid #30363d; border-radius: 8px; padding: 8px 14px; font-size: .75rem; color: #8b949e; z-index: 5; }
+    #stats strong { color: #f0f6fc; }
+
+    /* Leyenda */
+    #legend { position: absolute; bottom: 28px; right: 12px; background: #161b22cc; backdrop-filter: blur(8px); border: 1px solid #30363d; border-radius: 8px; padding: 12px 14px; font-size: .72rem; z-index: 5; min-width: 150px; }
+    #legend h4 { font-size: .75rem; color: #f0f6fc; margin-bottom: 8px; font-weight: 700; }
+    .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: #c9d1d9; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Selector de estilos */
+    .style-btn { display: none; }
+
+    /* FAB */
+    #fab-add { position: absolute; bottom: 80px; right: 12px; width: 44px; height: 44px; border-radius: 50%; background: #1f6feb; border: none; color: #fff; font-size: 22px; cursor: pointer; z-index: 5; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px #0008; transition: transform .2s, background .2s; }
+    #fab-add:hover { transform: scale(1.1); background: #388bfd; }
+    #fab-add.active { background: #da3633; transform: rotate(45deg); }
+    #fab-hint { position: absolute; bottom: 132px; right: 62px; background: #161b22cc; backdrop-filter: blur(8px); border: 1px solid #30363d; border-radius: 6px; padding: 6px 10px; font-size: .72rem; color: #f0f6fc; white-space: nowrap; display: none; z-index: 5; }
+    body.adding-mode #map { cursor: crosshair; }
+    body.adding-mode #fab-hint { display: block; }
+
+    /* Panel de instrucciones */
+    #info-panel {
+      position: absolute; top: 12px; left: 12px; z-index: 5;
+      background: #161b22cc; backdrop-filter: blur(10px);
+      border: 1px solid #30363d; border-radius: 10px;
+      padding: 12px 14px 10px; max-width: 240px;
+      font-size: .72rem; color: #c9d1d9;
+      transition: opacity .3s, transform .3s;
+    }
+    #info-panel.hidden { opacity: 0; pointer-events: none; transform: translateY(-6px); }
+    #info-panel h5 {
+      font-size: .78rem; font-weight: 700; color: #f0f6fc;
+      margin: 0 0 7px; display: flex; align-items: center; gap: 6px;
+    }
+    #info-panel ul { margin: 0; padding: 0 0 0 14px; line-height: 1.6; }
+    #info-panel ul li { margin-bottom: 3px; }
+    .ip-cats { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .ip-cat  { font-size: .65rem; padding: 2px 7px; border-radius: 20px;
+               background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+               color: #c9d1d9; }
+    #info-close {
+      position: absolute; top: 7px; right: 9px;
+      background: none; border: none; color: #8b949e;
+      font-size: 14px; cursor: pointer; line-height: 1;
+    }
+    #info-close:hover { color: #f0f6fc; }
+
+    /* Modal */
+    #modal-overlay { display: none; position: fixed; inset: 0; background: #000b; z-index: 100; align-items: center; justify-content: center; }
+    #modal-overlay.open { display: flex; }
+    #modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: min(480px, 96vw); max-height: 90vh; overflow-y: auto; padding: 24px; position: relative; animation: fadeUp .2s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    #modal h2 { font-size: 1rem; margin-bottom: 18px; color: #f0f6fc; }
+    #modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: #8b949e; font-size: 20px; cursor: pointer; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: .75rem; color: #8b949e; margin-bottom: 5px; font-weight: 600; }
+    .form-group label span { color: #da3633; }
+    .form-control { width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 10px; color: #f0f6fc; font-size: .82rem; font-family: inherit; outline: none; transition: border-color .2s; resize: vertical; }
+    .form-control:focus { border-color: #58a6ff; }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+    .form-coords { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 10px; font-size: .78rem; color: #3fb950; font-family: monospace; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+    .btn-save { flex: 1; padding: 9px; background: #1f6feb; color: #fff; border: none; border-radius: 6px; font-size: .85rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .15s; }
+    .btn-save:hover { background: #388bfd; }
+    .btn-cancel { padding: 9px 16px; background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; font-size: .85rem; cursor: pointer; font-family: inherit; }
+    .btn-cancel:hover { background: #30363d; }
+    .form-hint { color: #484f58; font-size: .68rem; margin-top: 4px; display: block; }
+
+    @media (max-width: 600px) {
+      #sidebar { width: 100%; max-height: 40vh; min-width: unset; border-right: none; border-bottom: 1px solid #30363d; }
+      body { flex-direction: column; }
+    }
+
+    /* =====================================================
+       PORTADA — SPLASH DIGITAL MAGAZINE
+    ===================================================== */
+    #cover-splash {
+      position: fixed; inset: 0; z-index: 999;
+      display: flex; overflow: hidden;
+    }
+    #cover-bg {
+      position: absolute; inset: 0;
+      background: url('portada de fondo.png') center/cover no-repeat;
+      transform: scale(1.06);
+      transition: transform 10s ease;
+    }
+    #cover-splash.visible #cover-bg { transform: scale(1); }
+    #cover-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(0,0,0,0.88) 0%,
+        rgba(13,17,23,0.60) 55%,
+        rgba(0,0,0,0.80) 100%
+      );
+    }
+    #cover-content {
+      position: relative; z-index: 2;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 60px 8vw;
+      max-width: 700px;
+      animation: coverFadeIn 1.4s ease both;
+    }
+    @keyframes coverFadeIn {
+      from { opacity: 0; transform: translateY(36px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .cover-eyebrow {
+      font-size: .72rem; letter-spacing: .28em; text-transform: uppercase;
+      color: #58a6ff; font-weight: 700; margin-bottom: 22px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .cover-eyebrow::before {
+      content: ''; display: inline-block;
+      width: 36px; height: 2px; background: #58a6ff; flex-shrink: 0;
+    }
+    .cover-title {
+      margin-bottom: 26px;
+    }
+    .cover-title .ct-kicker {
+      display: block;
+      font-size: clamp(3.2rem, 8.5vw, 7rem);
+      font-weight: 900; line-height: 0.90; letter-spacing: -.04em;
+      color: #f0f6fc;
+      text-shadow: 0 6px 40px rgba(0,0,0,0.75);
+    }
+    .cover-title .ct-of {
+      display: block;
+      font-size: clamp(.78rem, 1.6vw, 1rem);
+      font-weight: 500; letter-spacing: .3em; text-transform: uppercase;
+      color: #8b949e; margin: 10px 0 8px;
+    }
+    .cover-title .ct-sub {
+      display: block;
+      font-size: clamp(1.8rem, 5.5vw, 4rem);
+      font-weight: 900; line-height: 1.0; letter-spacing: -.025em;
+      color: #ff7b72;
+      text-shadow: 0 4px 28px rgba(255,123,114,0.35);
+    }
+    .cover-rule {
+      width: 64px; height: 4px;
+      background: linear-gradient(90deg, #ff7b72, #ffa657);
+      border-radius: 2px; margin-bottom: 22px;
+    }
+    .cover-sub {
+      font-size: 1.05rem; color: #c9d1d9;
+      line-height: 1.65; margin-bottom: 18px; font-weight: 400;
+    }
+    .cover-tags {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 8px; margin-bottom: 42px;
+    }
+    .cover-tag {
+      padding: 4px 12px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 20px; font-size: .75rem; color: #8b949e;
+      letter-spacing: .04em;
+    }
+    .cover-tag.accent {
+      background: rgba(88,166,255,0.12);
+      border-color: rgba(88,166,255,0.3);
+      color: #58a6ff; font-weight: 700;
+    }
+    #cover-enter {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 15px 40px;
+      background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%);
+      border: none; border-radius: 40px;
+      color: #fff; font-size: 1rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; letter-spacing: .05em;
+      box-shadow: 0 8px 30px rgba(31,111,235,0.45);
+      transition: transform .22s, box-shadow .22s;
+      align-self: flex-start; margin-bottom: 36px;
+    }
+    #cover-enter:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 40px rgba(31,111,235,0.6);
+    }
+    #cover-enter .cover-arrow {
+      font-size: 1.15rem; display: inline-block;
+      transition: transform .22s;
+    }
+    #cover-enter:hover .cover-arrow { transform: translateX(5px); }
+    .cover-footer {
+      font-size: .64rem; color: #484f58;
+      letter-spacing: .1em; text-transform: uppercase;
+    }
+    /* =================================================
+       MARCADOR PUNTO CERO — autoetnografía sonora
+    ================================================= */
+    .pc-marker {
+      position: relative;
+      width: 48px; height: 48px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    /* Anillos pulsantes */
+    .pc-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(255,123,114,0.6);
+      animation: pcPulse 2s ease-out infinite;
+    }
+    .pc-ring:nth-child(1) { width: 48px; height: 48px; animation-delay: 0s; }
+    .pc-ring:nth-child(2) { width: 66px; height: 66px; animation-delay: 0.7s; }
+    .pc-ring:nth-child(3) { width: 84px; height: 84px; animation-delay: 1.4s; }
+    @keyframes pcPulse {
+      0%   { opacity: 0.9; transform: scale(0.6); }
+      100% { opacity: 0;   transform: scale(1); }
+    }
+    /* Circulo central */
+    .pc-core {
+      position: relative; z-index: 2;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%, #ff9a91, #da3633);
+      border: 2.5px solid rgba(255,255,255,0.9);
+      box-shadow: 0 0 18px rgba(255,123,114,0.7), 0 3px 10px #0006;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; line-height: 1;
+      transition: transform .18s;
+    }
+    .pc-marker:hover .pc-core { transform: scale(1.15); }
+    /* Etiqueta */
+    .pc-label {
+      position: absolute; bottom: -22px; left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: .6rem; font-weight: 700; letter-spacing: .05em;
+      color: #ff7b72;
+      text-shadow: 0 1px 4px #000, 0 0 8px #000;
+      pointer-events: none;
+    }
+
+    /* Punto cero badge/cover inside popup */
+    .popup-cover-img {
+      width: calc(100% + 32px); margin: -16px -16px 14px;
+      height: 148px; object-fit: cover;
+      border-radius: 10px 10px 0 0; display: block;
+    }
+    .popup-cover-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: linear-gradient(135deg, #ff7b72, #ffa657);
+      color: #fff; font-size: .65rem; font-weight: 800;
+      letter-spacing: .12em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 20px; margin-bottom: 6px;
+    }
+    /* Splash exit */
+    #cover-splash.exiting { animation: coverExit .65s ease forwards; pointer-events: none; }
+    @keyframes coverExit {
+      to { opacity: 0; transform: scale(1.03); }
+    }
+    /* Audio performance button */
+    #cover-sound-btn {
+      position: absolute; bottom: 28px; right: 32px;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 30px; padding: 8px 18px 8px 14px;
+      color: #f0f6fc; font-size: .75rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      letter-spacing: .06em; text-transform: uppercase;
+      backdrop-filter: blur(8px);
+      transition: background .2s, border-color .2s;
+      z-index: 10;
+    }
+    #cover-sound-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.35); }
+    #cover-sound-btn .snd-icon { font-size: 1.1rem; line-height: 1; }
+    #cover-sound-btn.blocked {
+      border-color: rgba(255,123,114,0.4);
+      background: rgba(255,123,114,0.1);
+      color: #ff7b72;
+      animation: soundPulse 2s infinite;
+    }
+    @keyframes soundPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,123,114,0.0); }
+      50%      { box-shadow: 0 0 0 8px rgba(255,123,114,0.0); }
+    }
+    /* Efecto huracán: letras del título */
+    .cover-title .char {
+      display: inline-block;
+      transition: transform var(--dur,1.2s) cubic-bezier(.22,.61,.36,1),
+                  opacity   var(--dur,1.2s) ease-in;
+      will-change: transform, opacity;
+    }
+    .cover-title .char.char-blown {
+      transform: translate(var(--tx,80px),var(--ty,-50px)) rotate(var(--tr,60deg)) scale(0.15);
+      opacity: 0 !important;
+    }
+    .cover-title .char.char-drift {
+      transform: translate(var(--tx,18px),var(--ty,10px)) rotate(var(--tr,14deg));
+      opacity: 0.22 !important;
+    }
+  </style>
+</head>
+<body>
+
+<!-- PORTADA SPLASH -->
+<audio id="cover-audio" loop preload="auto">
+  <source src="performanceotis.mp3" type="audio/mpeg" />
+</audio>
+<div id="cover-splash">
+  <div id="cover-bg"></div>
+  <div id="cover-overlay"></div>
+  <button id="cover-sound-btn" class="blocked" title="Reproducir audio performativo">
+    <span class="snd-icon">&#9654;</span>
+    <span id="snd-label">Reproducir</span>
+  </button>
+  <div id="cover-content">
+    <div class="cover-eyebrow">Etnografía Sonora &middot; Guerrero, México</div>
+    <h1 class="cover-title">
+      <span class="ct-kicker">Mapa sonoro</span>
+      <span class="ct-of">de narrativas del</span>
+      <span class="ct-sub">Huracán Otis</span>
+    </h1>
+    <div class="cover-rule"></div>
+    <p class="cover-sub">Registro sonoro del Huracán Otis<br>Acapulco, 25 de octubre de 2023</p>
+    <div class="cover-tags">
+      <span class="cover-tag accent">61 piezas sonoras</span>
+      <span class="cover-tag">Podcasts</span>
+      <span class="cover-tag">Corridos</span>
+      <span class="cover-tag">Crónicas</span>
+      <span class="cover-tag">Testimonios</span>
+      <span class="cover-tag">Autoetnografía</span>
+    </div>
+    <button id="cover-enter" onclick="(function(){ var s=document.getElementById('cover-splash'); s.classList.add('exiting'); setTimeout(function(){ s.style.display='none'; if(typeof map!=='undefined') map.resize(); },680); })()">Explorar el mapa <span class="cover-arrow">→</span></button>
+    <div class="cover-footer">MapLibre GL JS &nbsp;&middot;&nbsp; Spotify &nbsp;&middot;&nbsp; Guerrero, México &nbsp;&middot;&nbsp; 2023&ndash;2025</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div id="sidebar-header">
+    <h1>Diarios Reflexivos Otis</h1>
+    <p>Cobertura sonora del Huracan Otis (oct. 2023). Cada punto marca el origen del podcast, radio o artista. Haz clic para escuchar.</p>
+  </div>
+  <div id="filters">
+    <button class="filter-btn active" data-cat="all" style="background:#21262d;color:#f0f6fc">Todos</button>
+    <button id="route-toggle" class="filter-btn" style="background:#21262d;color:#8b949e;border-color:#30363d">Ruta Sonora</button>
+    <button id="importance-toggle" class="filter-btn" data-importance="all" style="background:#21262d;color:#8b949e;border-color:#30363d">★ Puntos Clave</button>
+  </div>
+  <div id="search-wrap">
+    <span id="search-icon">&#128269;</span>
+    <input id="search-input" type="text" placeholder="Buscar por nombre, lugar o etiqueta..." autocomplete="off" />
+    <button id="search-clear" title="Limpiar">&#x2715;</button>
+  </div>
+  <!-- Timeline temporal -->
+  <div id="timeline-wrap">
+    <div id="timeline-label">&#128197; Filtrar por período</div>
+    <div id="timeline-track"><div id="timeline-fill"></div></div>
+    <button id="timeline-all" class="active">Mostrar todos los períodos</button>
+  </div>
+  <!-- Panel de estadísticas colapsable -->
+  <button id="stats-toggle">📊 Estadísticas del corpus <span class="st-arrow">▾</span></button>
+  <div id="stats-panel">
+    <div id="stats-panel-inner">
+      <div class="stat-row"><span class="stat-label">Piezas visibles</span><span class="stat-value" id="sp-count">0</span></div>
+      <div class="stat-row"><span class="stat-label">Duración total</span><span class="stat-value" id="sp-duration">—</span></div>
+      <div class="stat-row"><span class="stat-label">Duración media</span><span class="stat-value" id="sp-avg">—</span></div>
+      <div class="stat-row"><span class="stat-label">Con audio Spotify</span><span class="stat-value" id="sp-spotify">0</span></div>
+      <div class="stat-section-title">Por categoría</div>
+      <div id="sp-cats"></div>
+      <div class="stat-section-title">Zona geográfica</div>
+      <div id="sp-zones"></div>
+    </div>
+  </div>
+  <div id="point-list">
+    <div id="no-results">Sin resultados para tu busqueda.</div>
+  </div>
+  <div id="sidebar-footer">
+    <button class="footer-btn primary" id="btn-export">&#8595; GeoJSON</button>
+    <button class="footer-btn" id="btn-fit">Ver todos</button>
+  </div>
+</aside>
+
+<!-- MAPA -->
+<div id="map">
+  <div id="map-tooltip"></div>
+  <div id="stats">Puntos visibles: <strong id="visible-count">0</strong></div>
+  <div id="style-switcher" style="display:none">
+    <button class="style-btn active" data-style="dark">Oscuro</button>
+    <button class="style-btn" data-style="voyager">Calles</button>
+    <button class="style-btn" data-style="terrain">Terreno</button>
+    <button class="style-btn" data-style="positron">Claro</button>
+  </div>
+  <!-- Panel informativo -->
+  <div id="info-panel">
+    <button id="info-close" title="Cerrar">×</button>
+    <h5>&#127911; Cómo explorar</h5>
+    <ul>
+      <li>Haz <strong>clic en un punto</strong> del mapa para escuchar su pieza sonora.</li>
+      <li>Los puntos están agrupados por <strong>categoría</strong> y codificados por color.</li>
+      <li>Cada pieza es parte de una <strong>recopilación de narrativas mediáticas</strong> sobre el huracán Otis.</li>
+      <li>El punto pulsante &#9679; es la <strong>autoetnografía sonora&nbsp;“Punto Cero”</strong>&nbsp;— registrada en la zona de impacto del landfall.</li>
+      <li>Activa <strong>"Ruta Sonora"</strong> para seguir una narrativa guiada a través de voces clave del desastre.</li>
+    </ul>
+    <div class="ip-cats">
+      <span class="ip-cat" style="border-color:#58a6ff55;color:#58a6ff">Urbano</span>
+      <span class="ip-cat" style="border-color:#3fb95055;color:#3fb950">Natural</span>
+      <span class="ip-cat" style="border-color:#d2a8ff55;color:#d2a8ff">Cultural</span>
+      <span class="ip-cat" style="border-color:#ff7b7255;color:#ff7b72">Ritual</span>
+      <span class="ip-cat" style="border-color:#ffa65755;color:#ffa657">Trabajo</span>
+    </div>
+  </div>
+  <button id="fab-add" title="Agregar punto sonoro">&#＋;</button>
+  <div id="fab-hint">Haz clic en el mapa para colocar el punto</div>
+  <div id="legend">
+    <h4>Categorias</h4>
+    <div id="legend-items"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <button id="modal-close" title="Cerrar">&#x2715;</button>
+    <h2>Nuevo punto sonoro</h2>
+    <div class="form-group">
+      <label>Titulo <span>*</span></label>
+      <input id="f-title" class="form-control" type="text" placeholder="Ej. Amanecer en el mercado" />
+    </div>
+    <div class="form-group">
+      <label>Lugar / Comunidad <span>*</span></label>
+      <input id="f-location" class="form-control" type="text" placeholder="Ej. Mercado Central, Oaxaca" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Categoria <span>*</span></label>
+        <select id="f-category" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label>Grabador/a</label>
+        <input id="f-recorder" class="form-control" type="text" placeholder="Tu nombre" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Descripcion</label>
+      <textarea id="f-desc" class="form-control" rows="3" placeholder="Describe brevemente el contexto sonoro..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Etiquetas</label>
+        <input id="f-tags" class="form-control" type="text" placeholder="mercado, voces, manana" />
+      </div>
+      <div class="form-group">
+        <label>Duracion</label>
+        <input id="f-duration" class="form-control" type="text" placeholder="3:45" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Link de Spotify</label>
+      <input id="f-spotify" class="form-control" type="text" placeholder="https://open.spotify.com/episode/... o /playlist/..." />
+      <small class="form-hint">Pega el link de Spotify (episodio, playlist o show)</small>
+    </div>
+    <div class="form-group">
+      <label>Coordenadas</label>
+      <div class="form-coords" id="f-coords">Haz clic en el mapa primero</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modal-cancel">Cancelar</button>
+      <button class="btn-save" id="modal-save">Guardar punto</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* TOKEN */
+/* MapLibre GL JS — sin token, tiles CARTO gratuitas */
+var STYLES = {
+  dark:    'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  voyager: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+  terrain: 'https://tiles.stadiamaps.com/styles/stamen_terrain.json',
+  positron:'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+};
+
+/* CATEGORIAS */
+var CATEGORIES = {
+  urbano:   { label: 'Urbano',   color: '#58a6ff', emoji: 'Ciudad' },
+  natural:  { label: 'Natural',  color: '#3fb950', emoji: 'Natura' },
+  cultural: { label: 'Cultural', color: '#d2a8ff', emoji: 'Arte'   },
+  ritual:   { label: 'Ritual',   color: '#ff7b72', emoji: 'Ritual' },
+  trabajo:  { label: 'Trabajo',  color: '#ffa657', emoji: 'Oficio' },
+  mercado:  { label: 'Mercado',  color: '#f2cc60', emoji: 'Mercado'},
+};
+
+/* =================================================================
+   PAISAJES SONOROS — Mexico
+   spotify: URL de Spotify. null = sin audio asignado.
+   El link se convierte automaticamente al formato embed.
+================================================================= */
+var SOUND_POINTS = [
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     ACAPULCO, GUERRERO â€” zona cero del huracan
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  {
+    id: 1,
+    title: 'Clavados al vacio: la Quebrada despues de Otis',
+    location: 'La Quebrada, Acapulco, Guerrero',
+    category: 'cultural',
+    description: 'Podcast testimonial de Asi como suena sobre los clavadistas de La Quebrada y su lucha por mantener viva la tradicion despues de que el huracan destruyera el mirador y las instalaciones.',
+    recorder: 'Asi como suena',
+    date: 'Nov 2023',
+    duration: '32:42',
+    tags: ['La Quebrada', 'clavadistas', 'tradicion', 'reconstruccion simbolica'],
+    coords: [-99.9047, 16.8447],
+    spotify: 'https://open.spotify.com/episode/4k4Enz9OeGWukxB2Rrqqav',
+    importance: 4,
+  },
+  {
+    id: 2,
+    title: 'Ciclon Otis Acapulco',
+    location: 'Acapulco de Juarez, Guerrero',
+    category: 'urbano',
+    description: 'Testimonio descriptivo de los primeros momentos tras el impacto del huracan categoria 5. Audio documental desde el centro de Acapulco con voces de testigos directos.',
+    recorder: 'Huracan Otis (podcast)',
+    date: 'Oct 2023',
+    duration: '6:23',
+    tags: ['devastacion', 'categoria 5', 'Acapulco', 'testimonio'],
+    coords: [-99.8945, 16.8531],
+    spotify: 'https://open.spotify.com/episode/1asX0QjjOpAPsE5y2GwwtT',
+    importance: 5,
+  },
+  {
+    id: 5,
+    title: 'Los efectos del huracan Otis a los empresarios de Acapulco',
+    location: 'Zona Diamante, Acapulco, Guerrero',
+    category: 'trabajo',
+    description: 'Episodio del podcast EL CEO sobre el impacto economico en el sector empresarial y hotelero de la Zona Diamante, la zona turistica de mayor inversion en Acapulco.',
+    recorder: 'EL CEO',
+    date: 'Nov 2023',
+    duration: '1:47',
+    tags: ['economia', 'turismo', 'empresarios', 'Zona Diamante'],
+    coords: [-99.8600, 16.7900],
+    spotify: 'https://open.spotify.com/episode/1AB0zxMU6AFGLqQNI3mM7V',
+    importance: 5,
+  },
+  {
+    id: 9,
+    title: 'Testimonio: Casa AFECTADA por el huracan Otis',
+    location: 'Col. Renacimiento, Acapulco, Guerrero',
+    category: 'trabajo',
+    description: 'Recorrido testimonial por una vivienda popular en la Colonia Renacimiento, una de las zonas mas damnificadas. Producido por Delirio Arquitectonico, documenta el dano estructural y la perdida habitacional.',
+    recorder: 'Delirio Arquitectonico',
+    date: 'Nov 2023',
+    duration: '12:38',
+    tags: ['vivienda', 'perdida habitacional', 'dano estructural', 'Renacimiento'],
+    coords: [-99.8600, 16.8900],
+    spotify: 'https://open.spotify.com/episode/1TmNoMq7S1Q3IN9loTn1Z7',
+  },
+  {
+    id: 10,
+    title: 'Ep. 32 | Vivimos un apocalipsis con el huracan Otis',
+    location: 'Acapulco de Juarez, Guerrero',
+    category: 'ritual',
+    description: 'Testimonio vivencial extendido de Radical Podcast. Sobrevivientes narran la noche del impacto, el colapso de los servicios basicos y el trauma colectivo vivido en los dias sin luz, agua ni comunicacion.',
+    recorder: 'Radical Podcast',
+    date: 'Nov 2023',
+    duration: '1:21:24',
+    tags: ['trauma colectivo', 'sobrevivientes', 'colapso', 'Acapulco'],
+    coords: [-99.9100, 16.8200],
+    spotify: 'https://open.spotify.com/episode/6WBlF4TE7iKMCNA2OWtOdV',
+    importance: 5,
+  },
+  {
+    id: 14,
+    title: 'Acceso 95.7 EP128: El poder de la radio tras el huracan Otis',
+    location: 'Acapulco, Guerrero',
+    category: 'cultural',
+    description: 'La estacion Acceso 95.7 FM documenta como la radio local se convirtio en el unico medio de comunicacion cuando internet y la telefonia colapsaron. La fractura comunicacional y el papel de la radio de emergencia.',
+    recorder: 'Acceso 95.7',
+    date: 'Nov 2023',
+    duration: '27:22',
+    tags: ['radio', 'emergencia', 'comunicacion', 'fractura comunicacional'],
+    coords: [-99.8800, 16.8350],
+    spotify: 'https://open.spotify.com/episode/7z4ut2sgaCVrixu9NWE9XJ',
+    importance: 5,
+  },
+  {
+    id: 16,
+    title: 'Huracan Otis: Como se vio y se sintio la ayuda',
+    location: 'Acapulco de Juarez, Guerrero',
+    category: 'cultural',
+    description: 'Podcast vivencial de Rapidamente y a la moda sobre como llego la ayuda humanitaria a las colonias populares de Acapulco: quienes la distribuyeron, quienes quedaron fuera y como se organizaron los vecinos.',
+    recorder: 'Rapidamente y a la moda',
+    date: 'Nov 2023',
+    duration: '15:53',
+    tags: ['ayuda humanitaria', 'solidaridad', 'colonias', 'organizacion'],
+    coords: [-99.8750, 16.8650],
+    spotify: 'https://open.spotify.com/episode/3cSt2tR26HH1lk1hUf2cbK',
+  },
+  {
+    id: 17,
+    title: 'Acapulco en el ojo del huracan Otis. Como reconstruirlo?',
+    location: 'Acapulco de Juarez, Guerrero',
+    category: 'urbano',
+    description: 'Podcast testimonial de Palabras en Movimiento con voces de arquitectos, vecinos y funcionarios sobre el proceso de reconstruccion urbana: para quien, como y con que recursos se reconstruye Acapulco.',
+    recorder: 'Palabras en Movimiento',
+    date: 'Nov 2023',
+    duration: '49:12',
+    tags: ['reconstruccion', 'urbanismo', 'Acapulco', 'experiencia territorial'],
+    coords: [-99.9000, 16.8600],
+    spotify: 'https://open.spotify.com/episode/1D9gm3qRLrtcroicGKXyGJ',
+    importance: 4,
+  },
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     COYUCA DE BENITEZ, GUERRERO â€” zona costera afectada
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  {
+    id: 20,
+    title: 'Del huracan a la reconstruccion participativa: reflexiones a un ano de Otis',
+    location: 'Coyuca de Benitez, Guerrero',
+    category: 'trabajo',
+    description: 'Podcast comunitario de Cooperacion Comunitaria sobre el proceso de reconstruccion participativa en municipios costeros de Guerrero: asambleas vecinales, toma de decisiones colectiva y organizacion social desde abajo.',
+    recorder: 'Cooperacion Comunitaria',
+    date: 'Oct 2024',
+    duration: '8:47',
+    tags: ['reconstruccion participativa', 'comunidad', 'Costa Grande', 'Guerrero'],
+    coords: [-100.0833, 16.9833],
+    spotify: 'https://open.spotify.com/episode/5CDFXH4A6XNTXHjPjLRyHc',
+  },
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     CHILPANCINGO, GUERRERO â€” capital del estado
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  {
+    id: 8,
+    title: 'Huracan Otis â€” Derecho en Contexto',
+    location: 'Chilpancingo, Guerrero',
+    category: 'urbano',
+    description: 'Episodio del podcast juridico Derecho en Contexto que analiza el marco legal de la respuesta al desastre, los derechos de los afectados y las obligaciones del Estado mexicano ante la catastrofe.',
+    recorder: 'Derecho en Contexto',
+    date: 'Nov 2023',
+    duration: '49:23',
+    tags: ['derecho', 'institucional', 'Guerrero', 'afectados'],
+    coords: [-99.5004, 17.5517],
+    spotify: 'https://open.spotify.com/episode/5RFjW6Hk0cDqVgFVGx87k4',
+  },
+  {
+    id: 12,
+    title: 'Huracan Otis - Resiliencia del estado de Guerrero',
+    location: 'Chilpancingo, Guerrero',
+    category: 'cultural',
+    description: 'Reflexion sobre la capacidad de recuperacion del estado de Guerrero: narrativa de resiliencia comunitaria, memoria del desastre y esperanza en la reconstruccion desde la capital guerrerense.',
+    recorder: 'Huracan Otis â€“ Resiliencia Guerrero',
+    date: 'Nov 2023',
+    duration: '3:18',
+    tags: ['resiliencia', 'Guerrero', 'recuperacion', 'memoria'],
+    coords: [-99.5100, 17.5400],
+    spotify: 'https://open.spotify.com/episode/3V25DWHV9kwdJscC5iAleH',
+  },
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     TAXCO, GUERRERO â€” polo cultural
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  {
+    id: 24,
+    title: 'Huracan Otis la ultima leccion',
+    location: 'Taxco, Guerrero',
+    category: 'cultural',
+    description: 'Ensayo sonoro del podcast Escalona Poetas en extincion. Reflexiona sobre la memoria, el aprendizaje y lo que el huracan Otis revela sobre la fragilidad de lo construido y la permanencia de lo humano en Guerrero.',
+    recorder: 'Escalona Poetas en extincion',
+    date: 'Nov 2023',
+    duration: '18:04',
+    tags: ['ensayo', 'memoria', 'poesia', 'Guerrero'],
+    coords: [-99.6011, 18.5571],
+    spotify: 'https://open.spotify.com/episode/3eoS94a4IlUKUSq03iJFlz',
+    importance: 5,
+  },
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     IGUALA, GUERRERO â€” musica popular
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  {
+    id: 26,
+    title: 'El Corrido del Huracan Otis',
+    location: 'Iguala, Guerrero',
+    category: 'cultural',
+    description: 'Corrido popular de Los Donnys de Guerrero que narra la noche del huracan, el miedo de la gente y la destruccion de Acapulco al ritmo de la musica de banda guerrerense. Narrativa popular del desastre.',
+    recorder: 'Los Donnys de Guerrero',
+    date: 'Nov 2023',
+    duration: '4:15',
+    tags: ['corrido', 'musica popular', 'Guerrero', 'narrativa popular'],
+    coords: [-99.5397, 18.3456],
+    spotify: 'https://open.spotify.com/track/6orJCgkvZJbTcShb7So29C',
+  },
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     ZIHUATANEJO, GUERRERO â€” Costa Grande
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  {
+    id: 27,
+    title: 'Huracan Otis â€” Pavel Salinas y su Fugitivo Show',
+    location: 'Zihuatanejo, Guerrero',
+    category: 'cultural',
+    description: 'Cancion popular de Pavel Salinas y su Fugitivo Show sobre el huracan Otis desde la Costa Grande de Guerrero. Memoria musical que transforma la tragedia en narrativa sonora colectiva.',
+    recorder: 'Pavel Salinas y su Fugitivo Show',
+    date: 'Nov 2023',
+    duration: '5:51',
+    tags: ['cancion', 'musica popular', 'Costa Grande', 'memorias musicales'],
+    coords: [-101.5547, 17.6404],
+    spotify: 'https://open.spotify.com/track/2ivZgv0GPmNcZ0LcfGqUik',
+  },
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     CIUDAD DE MEXICO â€” cobertura mediatica nacional
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  {
+    id: 3,
+    title: '59. El del huracan Otis',
+    location: 'Ciudad de Mexico',
+    category: 'cultural',
+    description: 'Episodio reflexivo del podcast Banal sobre el significado social del huracan Otis, la cobertura mediatica y lo que el desastre revela sobre las prioridades politicas y la indiferencia desde la capital.',
+    recorder: 'Banal',
+    date: 'Nov 2023',
+    duration: '39:28',
+    tags: ['reflexion social', 'medios', 'CDMX', 'cobertura'],
+    coords: [-99.1332, 19.4326],
+    spotify: 'https://open.spotify.com/episode/2NtovO38IHmedxwZA9Gyjq',
+    importance: 5,
+  },
+  {
+    id: 4,
+    title: '112. Contradebate | Huracan Otis, "fenomeno meteorologico unico"',
+    location: 'Ciudad de Mexico',
+    category: 'urbano',
+    description: 'Debate politico-periodistico de Contralinea Audio que cuestiona la clasificacion oficial del huracan como "fenomeno unico" y analiza la responsabilidad institucional del gobierno federal y estatal.',
+    recorder: 'Contralinea Audio',
+    date: 'Nov 2023',
+    duration: '1:01:22',
+    tags: ['debate', 'institucional', 'critica', 'Contralinea'],
+    coords: [-99.1664, 19.4284],
+    spotify: 'https://open.spotify.com/episode/7zGBSlzmAz58hq5QNFKlJD',
+    importance: 4,
+  },
+  {
+    id: 6,
+    title: 'Huracan Otis arraso con todo en Acapulco, incluso con la droga',
+    location: 'Ciudad de Mexico',
+    category: 'urbano',
+    description: 'Cronica periodistica de Territorio Rojo / Nacion Criminal sobre la destruccion del narcotrafico y sus estructuras en Acapulco. El huracan como elemento disruptor del crimen organizado en la ciudad.',
+    recorder: 'Territorio Rojo / Nacion Criminal',
+    date: 'Nov 2023',
+    duration: '4:26',
+    tags: ['cronica', 'crimen organizado', 'destruccion urbana', 'periodismo'],
+    coords: [-99.1500, 19.3600],
+    spotify: 'https://open.spotify.com/episode/4KvosPoBud1J4Vp0PWUvbe',
+  },
+  {
+    id: 7,
+    title: 'Huracan Otis: Acapulco, la destruccion de un paraiso',
+    location: 'Ciudad de Mexico',
+    category: 'urbano',
+    description: 'Podcast analitico de Complot Politica Ficcion sobre el colapso de Acapulco como destino turistico y simbolo nacional, las implicaciones politicas y quien pagara la reconstruccion.',
+    recorder: 'Complot Politica Ficcion',
+    date: 'Nov 2023',
+    duration: '22:22',
+    tags: ['analisis', 'politica', 'colapso territorial', 'turismo'],
+    coords: [-99.2000, 19.4500],
+    spotify: 'https://open.spotify.com/episode/4NaqiorS7mAoD95rVB9zYN',
+  },
+  {
+    id: 11,
+    title: 'Beneficios Fiscales para afectados por el huracan Otis â€” Educarte Fiscal',
+    location: 'Ciudad de Mexico',
+    category: 'trabajo',
+    description: 'Podcast tecnico del IMEFI TV sobre los decretos fiscales, deducciones especiales y beneficios tributarios para empresas y personas fisicas afectadas por el huracan Otis en el estado de Guerrero.',
+    recorder: 'IMEFI TV',
+    date: 'Nov 2023',
+    duration: '41:17',
+    tags: ['fiscal', 'beneficios', 'IMEFI', 'reconstruccion economica'],
+    coords: [-99.2800, 19.3700],
+    spotify: 'https://open.spotify.com/episode/7yDRJJmvzDnVOVpUeQxpIZ',
+  },
+  {
+    id: 13,
+    title: '71.- Huracan Otis, las victimas de siempre',
+    location: 'Ciudad de Mexico',
+    category: 'urbano',
+    description: 'Episodio critico de Utopia50 sobre como el huracan Otis expuso las desigualdades estructurales de Mexico: la vulnerabilidad de los mas pobres, la lentitud del auxilio y la desproteccion historica.',
+    recorder: 'Utopia50',
+    date: 'Nov 2023',
+    duration: '6:58',
+    tags: ['desigualdad', 'vulnerabilidad', 'critica social', 'victimas'],
+    coords: [-99.1250, 19.4600],
+    spotify: 'https://open.spotify.com/episode/5AMI1ZbvPaUZQ4zWxRBa3F',
+    importance: 4,
+  },
+  {
+    id: 15,
+    title: 'Las lecciones que nos dejo el huracan Otis en materia de riesgos asegurados',
+    location: 'Ciudad de Mexico',
+    category: 'trabajo',
+    description: 'Analisis de Parmenas Radio sobre el mercado de seguros y las lecciones del huracan Otis: cobertura insuficiente en zonas costeras, riesgos no asegurados y el futuro de la proteccion financiera ante desastres.',
+    recorder: 'Parmenas Radio',
+    date: 'Dic 2023',
+    duration: '27:48',
+    tags: ['seguros', 'riesgo', 'aprendizajes', 'finanzas'],
+    coords: [-99.1600, 19.4400],
+    spotify: 'https://open.spotify.com/episode/3N7vTNXpQ94uJGBj897qRn',
+  },
+  {
+    id: 18,
+    title: 'Debemos centrar la discusion del Huracan Otis en el actuar de AMLO?',
+    location: 'Ciudad de Mexico',
+    category: 'urbano',
+    description: 'Debate social del podcast Fuera de Tono sobre si la discusion publica debia centrarse en la respuesta presidencial o en las necesidades urgentes de los sobrevivientes. Debate pÃºblico sobre el rol del Estado.',
+    recorder: 'Fuera de Tono',
+    date: 'Nov 2023',
+    duration: '32:12',
+    tags: ['debate', 'AMLO', 'respuesta gubernamental', 'politica'],
+    coords: [-99.1550, 19.4200],
+    spotify: 'https://open.spotify.com/episode/1lpmcMY33wN6Ka13SMY5Wn',
+  },
+  {
+    id: 19,
+    title: 'Reflexiones despues del Huracan Otis â€” la desigualdad en Mexico es asesina',
+    location: 'Ciudad de Mexico',
+    category: 'ritual',
+    description: 'Podcast reflexivo de Calabozos y Dragones sobre la elaboracion emocional colectiva del desastre: como procesar el dolor, la culpa y la rabia, y por que la desigualdad estructural convierte fenomenos naturales en tragedias sociales.',
+    recorder: 'Calabozos y Dragones',
+    date: 'Nov 2023',
+    duration: '44:59',
+    tags: ['elaboracion emocional', 'desigualdad', 'duelo colectivo', 'reflexion'],
+    coords: [-99.1350, 19.4350],
+    spotify: 'https://open.spotify.com/episode/2QU9y1emPbRbMkGRPB772X',
+  },
+  {
+    id: 21,
+    title: 'Huracan Otis: las claves para evitar la tragedia',
+    location: 'Ciudad de Mexico',
+    category: 'natural',
+    description: 'Podcast periodistico de La Silla Rota sobre las fallas del sistema de alerta temprana, el debate cientifico sobre la intensificacion rapida del huracan y las reformas necesarias para prevenir tragedias similares.',
+    recorder: 'La Silla Rota',
+    date: 'Nov 2023',
+    duration: '50:02',
+    tags: ['prevencion', 'alerta temprana', 'periodismo', 'SMN'],
+    coords: [-99.1450, 19.4200],
+    spotify: 'https://open.spotify.com/episode/22chFTmgGuu97XJJq3K3BD',
+  },
+  {
+    id: 23,
+    title: 'La condicion humana ante tragedias como el huracan Otis',
+    location: 'Ciudad de Mexico',
+    category: 'ritual',
+    description: 'Reflexion de Fernanda Familiar y Emilio Vallesvidrio sobre la condicion humana ante las catastrofes: como emerge la solidaridad, como se procesa el trauma y el papel de los medios en la cobertura del dolor ajeno.',
+    recorder: 'Fernanda Familiar / Emilio Vallesvidrio',
+    date: 'Nov 2023',
+    duration: '8:34',
+    tags: ['condicion humana', 'solidaridad', 'medios', 'reflexion'],
+    coords: [-99.2100, 19.4100],
+    spotify: 'https://open.spotify.com/episode/1LUZPckPHIfLgRwICIgCMr',
+  },
+  {
+    id: 25,
+    title: 'Hubo suficiente tiempo para alertar sobre la amenaza del huracan Otis?',
+    location: 'Ciudad de Mexico',
+    category: 'natural',
+    description: 'Periodismo critico de Aristegui Noticias que cuestiona al Servicio Meteorologico Nacional sobre los tiempos de alerta, los protocolos fallidos y la responsabilidad del Estado ante la intensificacion extraordinaria del huracan.',
+    recorder: 'Aristegui',
+    date: 'Nov 2023',
+    duration: '21:07',
+    tags: ['alerta temprana', 'responsabilidad estatal', 'SMN', 'Aristegui'],
+    coords: [-99.1800, 19.4150],
+    spotify: 'https://open.spotify.com/episode/2gwpxrA0Lmrysy9KV8GUMb',
+  },
+
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     MONTERREY, NUEVO LEON â€” sector construccion
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  {
+    id: 22,
+    title: '165 [Radio] Infraestructura y construccion: danos del huracan Otis',
+    location: 'Monterrey, Nuevo Leon',
+    category: 'trabajo',
+    description: 'Radio tecnica de Viverent desde el sector inmobiliario y de construccion de Monterrey: inventario de danos, retos tecnicos de la reconstruccion y el mercado de vivienda en Acapulco post-desastre.',
+    recorder: 'Viverent',
+    date: 'Nov 2023',
+    duration: '25:02',
+    tags: ['infraestructura', 'construccion', 'inmobiliario', 'Monterrey'],
+    coords: [-100.3161, 25.6866],
+    spotify: 'https://open.spotify.com/episode/19dFpR67zQd7m6PQfVw2VN',
+  },
+
+  /* --------------------------------------------------
+     PUNTO DE IMPACTO A TIERRA -- Autoetnografia Sonora
+  -------------------------------------------------- */
+  {
+    id: 28,
+    title: 'Prueba de Audio - Autoetnografia Sonora (Impacto Otis)',
+    location: 'Costa de Guerrero - Punto de Impacto, Huracan Otis',
+    category: 'ritual',
+    description: 'Autoetnografia sonora propia. Registro desde el punto geografico donde el Huracan Otis toco tierra en la costa de Guerrero el 25 de octubre de 2023. Diario reflexivo de campo.',
+    recorder: 'Gilberto (autoetnografia)',
+    date: 'Oct 2023',
+    duration: '--:--',
+    tags: ['autoetnografia', 'impacto', 'Otis', 'costa', 'Guerrero'],
+    coords: [-99.76, 16.79],
+    spotify: null,
+    audio: 'https://rovira-my.sharepoint.com/personal/g18404874_epp_urv_cat/_layouts/15/embed.aspx?UniqueId=2560a0d4-4cce-4291-af16-c5765ad91d75&embed=%7B%22ust%22%3Atrue%2C%22hv%22%3A%22CopyEmbedCode%22%7D&referrer=StreamWebApp&referrerScenario=EmbedDialog.Create',
+    importance: 5,
+  },
+
+  /* --------------------------------------------------
+     NUEVOS PUNTOS SONOROS (Bloque 2)
+  -------------------------------------------------- */
+  {
+    id: 29,
+    title: 'Huracán Otis: Los desastres naturales ponen en jaque a los gobiernos',
+    location: 'Ciudad de México',
+    category: 'cultural',
+    description: 'Análisis político sobre cómo el huracán Otis y otros desastres naturales evidencian las fallas de los gobiernos en materia de prevención y respuesta.',
+    recorder: 'Política Déjà Vu',
+    date: 'Nov 2, 2023',
+    duration: '26 min',
+    tags: ['gobierno', 'desastre', 'CDMX', 'SMN', 'Otis'],
+    coords: [-99.14, 19.43],
+    spotify: 'https://open.spotify.com/episode/73HpjLXeanFg4TLjSP4lNM',
+  },
+  {
+    id: 30,
+    title: '26.Oct.23 - El huracán Otis dejó devastado a Acapulco',
+    location: 'Acapulco, Guerrero',
+    category: 'urbano',
+    description: 'Crónica inmediata del día después del impacto: hoteles destrozados, incomunicación total y la magnitud de la devastación en Acapulco.',
+    recorder: 'Tu Shot',
+    date: 'Oct 26, 2023',
+    duration: '10 min',
+    tags: ['Acapulco', 'impacto', 'hoteles', 'devastación', 'Otis'],
+    coords: [-99.8945, 16.8531],
+    spotify: 'https://open.spotify.com/episode/6ewRgtE2rf5HMp7V1R2sqx',
+  },
+  {
+    id: 31,
+    title: 'Huracán Otis en cifras: esto costará la reconstrucción de Acapulco',
+    location: 'Ciudad de México',
+    category: 'urbano',
+    description: 'Análisis económico sobre el costo de la reconstrucción de Acapulco y Guerrero tras el paso del huracán Otis categoría 5.',
+    recorder: 'MVS Noticias - Luis Cárdenas',
+    date: 'Oct 31, 2023',
+    duration: '18 min',
+    tags: ['economía', 'reconstrucción', 'Guerrero', 'Acapulco', 'Otis'],
+    coords: [-99.17, 19.43],
+    spotify: 'https://open.spotify.com/episode/3TwyZetbadhkqXc7fdpcOZ',
+  },
+  {
+    id: 32,
+    title: 'N+Diario | Acapulco lucha por levantarse a más de dos meses del impacto del huracán Otis',
+    location: 'Acapulco, Guerrero',
+    category: 'urbano',
+    description: 'Crónica de recuperación: Acapulco dos meses después de Otis, con el turismo comenzando a regresar y los retos que aún enfrentan los habitantes.',
+    recorder: 'N+ Diario',
+    date: 'Ene 2, 2024',
+    duration: '6 min',
+    tags: ['recuperación', 'Acapulco', 'turismo', 'dos meses', 'Otis'],
+    coords: [-99.88, 16.86],
+    spotify: 'https://open.spotify.com/episode/6dIWThG5JfgWLOgHuSjLEc',
+  },
+  {
+    id: 33,
+    title: 'La noche que Acapulco murió',
+    location: 'Acapulco - Bahía',
+    category: 'ritual',
+    description: 'Testimonio del marinero Ulises, quien naufragó durante el huracán Otis. Relato de supervivencia en el mar durante la noche del impacto del ciclón categoría 5.',
+    recorder: 'Delirios Crónicos',
+    date: 'Abr 21, 2024',
+    duration: '49 min',
+    tags: ['testimonio', 'marinero', 'náufrago', 'bahía', 'Otis'],
+    coords: [-99.91, 16.85],
+    spotify: 'https://open.spotify.com/episode/4p0XBCS9vUS1hsmdtDXp47',
+  },
+  {
+    id: 34,
+    title: 'Huracán Otis en Acapulco: Aspirantes a coordinar la 4T hacen pausa a sus giras para apoyar a los afectados',
+    location: 'Acapulco, Guerrero',
+    category: 'urbano',
+    description: 'Nota informativa sobre la respuesta política al huracán Otis: aspirantes de Morena suspenden actividades en solidaridad con los damnificados de Guerrero.',
+    recorder: 'Primera Plana: Noticias',
+    date: 'Oct 27, 2023',
+    duration: '5 min',
+    tags: ['política', '4T', 'Acapulco', 'Morena', 'Otis'],
+    coords: [-99.90, 16.85],
+    spotify: 'https://open.spotify.com/episode/4QQxNJJdyR3LkI6uY4i4DL',
+  },
+  {
+    id: 35,
+    title: 'Almas que Penan en Catástrofes, tras el Huracán Otis en Acapulco',
+    location: 'Acapulco, Guerrero',
+    category: 'ritual',
+    description: 'La vidente Irma Latham comparte su testimonio sobre las almas que penan tras las catástrofes, incluyendo las víctimas del huracán Otis en Acapulco.',
+    recorder: 'Podcast Sobrenatural',
+    date: 'Nov 2, 2023',
+    duration: '40 min',
+    tags: ['espiritual', 'almas', 'catástrofe', 'Acapulco', 'Otis'],
+    coords: [-99.87, 16.84],
+    spotify: 'https://open.spotify.com/episode/7xhsBUTeJSpIA83HIPG7CQ',
+  },
+  {
+    id: 36,
+    title: 'Huracán Otis deja daños devastadores en Acapulco',
+    location: 'Acapulco, Guerrero',
+    category: 'urbano',
+    description: 'Reporte de la primera plana: el huracán Otis categoría 5 dejó incomunicada la costa de Guerrero causando daños devastadores.',
+    recorder: 'Primera Plana: Noticias',
+    date: 'Oct 26, 2023',
+    duration: '4 min',
+    tags: ['noticias', 'Acapulco', 'devastación', 'incomunicación', 'Otis'],
+    coords: [-99.86, 16.85],
+    spotify: 'https://open.spotify.com/episode/6rbvzWSX35hhWCwJdCIlgS',
+  },
+  {
+    id: 37,
+    title: '¡Va que va! - Así vivió nuestro CEO el huracán "Otis" en Acapulco',
+    location: 'Acapulco, Guerrero',
+    category: 'trabajo',
+    description: 'Entrevista con Arturo Tronco, director general de Peña Colorada, sobre cómo vivió el embate del huracán Otis en Acapulco y su periplo para salir de la devastación.',
+    recorder: 'Peña Colorada - Va que va',
+    date: 'Nov 23, 2023',
+    duration: '34 min',
+    tags: ['testimonio', 'empresa', 'CEO', 'Acapulco', 'Otis'],
+    coords: [-99.89, 16.83],
+    spotify: 'https://open.spotify.com/episode/6HUv6smnp2S1TlCel1Jisx',
+  },
+  {
+    id: 38,
+    title: 'Solidaridad: Aeroméxico ofrece transporte gratuito a afectados por el huracán Otis',
+    location: 'Acapulco, Guerrero',
+    category: 'urbano',
+    description: 'Aeroméxico anuncia puente aéreo gratuito para afectados de Acapulco, dando prioridad a mujeres, niños y personas vulnerables tras el paso de Otis.',
+    recorder: 'Cafeína x Sopitas.com',
+    date: 'Oct 27, 2023',
+    duration: '5 min',
+    tags: ['aeropuerto', 'ayuda', 'Aeroméxico', 'Acapulco', 'Otis'],
+    coords: [-99.91, 16.84],
+    spotify: 'https://open.spotify.com/episode/2cdLeOlXskRhdsomPOX4KU',
+  },
+  {
+    id: 39,
+    title: 'Huracán Otis devasta Acapulco, entrevista con Lía Limón y cambios en Metrobús',
+    location: 'Ciudad de México',
+    category: 'urbano',
+    description: 'Noticiero con entrevista a meteorólogos de Conagua sobre el comportamiento de Otis al pasar de tormenta tropical a huracán categoría 5 en pocas horas.',
+    recorder: 'Noticiero de Nacho Lozano en Chilango',
+    date: 'Oct 25, 2023',
+    duration: '49 min',
+    tags: ['Conagua', 'meteorología', 'CDMX', 'Acapulco', 'Otis'],
+    coords: [-99.16, 19.42],
+    spotify: 'https://open.spotify.com/episode/5OtA9dMbt1rbo6qydHfhNa',
+  },
+  {
+    id: 40,
+    title: 'Huracán Otis suma muertos, desaparecidos y daños en Acapulco y varios municipios de Guerrero',
+    location: 'Guerrero',
+    category: 'urbano',
+    description: 'Edición de Expansión Daily con balance de víctimas, desaparecidos y daños en Acapulco y municipios de Guerrero tras el paso del huracán Otis.',
+    recorder: 'Expansión Daily',
+    date: 'Oct 27, 2023',
+    duration: '20 min',
+    tags: ['víctimas', 'desaparecidos', 'Guerrero', 'Acapulco', 'Otis'],
+    coords: [-99.50, 17.55],
+    spotify: 'https://open.spotify.com/episode/501YOBtl3RCHYDn9LE1bM2',
+  },
+  {
+    id: 41,
+    title: 'GUERRERO "REPORTE IMPACTO HURACAN OTIS CATEGORIA 5 EN ACAPULCO"',
+    location: 'Acapulco, Guerrero',
+    category: 'urbano',
+    description: 'Reporte especial de La Fórmula es el Turismo sobre el impacto del huracán Otis categoría 5 en Acapulco y sus consecuencias para el sector turístico de Guerrero.',
+    recorder: 'La Fórmula es el Turismo',
+    date: 'Oct 31, 2023',
+    duration: '18 min',
+    tags: ['turismo', 'reporte', 'Acapulco', 'Guerrero', 'Otis'],
+    coords: [-99.89, 16.86],
+    spotify: 'https://open.spotify.com/episode/3XOjqeGfqUUCyZbdZTNXe9',
+  },
+  {
+    id: 42,
+    title: 'EL HURACÁN OTIS (podcast estudiantil)',
+    location: 'Acapulco, Guerrero',
+    category: 'natural',
+    description: 'Podcast estudiantil que analiza cómo el huracán Otis pasó de ciclón a categoría 5 en menos de 24 horas, los daños ocasionados y la respuesta del gobierno.',
+    recorder: 'Juan Manuel (podcast)',
+    date: '2024',
+    duration: '--',
+    tags: ['educativo', 'categoría 5', 'Acapulco', 'gobierno', 'Otis'],
+    coords: [-99.92, 16.85],
+    spotify: 'https://open.spotify.com/show/4a8vLdxDNLbxcLRjYh0rlQ',
+  },
+  {
+    id: 43,
+    title: '¿Cómo se formó "Otis"? - Martes 31 de octubre del 2023',
+    location: 'Ciudad de México',
+    category: 'natural',
+    description: 'Explicación científica sobre la formación y rápida intensificación del huracán Otis, considerado un evento anormal que tomó por sorpresa a meteorólogos de todo el mundo.',
+    recorder: 'Martha Debayle',
+    date: 'Oct 31, 2023',
+    duration: '40 min',
+    tags: ['meteorología', 'ciencia', 'CDMX', 'cambio climático', 'Otis'],
+    coords: [-99.15, 19.44],
+    spotify: 'https://open.spotify.com/episode/3KPcPhOwiXdpmVWce9GxVP',
+  },
+  {
+    id: 44,
+    title: 'Otis, el huracán que llegó y nunca se fue',
+    location: 'Acapulco, Guerrero',
+    category: 'cultural',
+    description: 'A dos años del huracán Otis, la 4T sigue vendiendo discursos entre ruinas. Sin FONDEN, sin prevención y con miles de damnificados olvidados, la tragedia sigue viva.',
+    recorder: 'La Otra Verdad',
+    date: 'Oct 20, 2025',
+    duration: '1 hr 12 min',
+    tags: ['damnificados', 'olvido', 'política', 'dos años', 'Otis'],
+    coords: [-99.88, 16.87],
+    spotify: 'https://open.spotify.com/episode/6TWv4vbeOHWpATKSoGduMa',
+  },
+  {
+    id: 45,
+    title: 'El Huracán Otis (corrido)',
+    location: 'Guerrero',
+    category: 'cultural',
+    description: 'Corrido de Los Valente sobre el huracán Otis, publicado en 2023 como single conmemorativo del fenómeno meteorológico que devastó Acapulco.',
+    recorder: 'Los Valente',
+    date: '2023',
+    duration: '4:03',
+    tags: ['corrido', 'música', 'Guerrero', 'Acapulco', 'Otis'],
+    coords: [-99.93, 16.83],
+    spotify: 'https://open.spotify.com/track/7zpjSvDgviQF1GFxHoM7d6',
+  },
+  {
+    id: 46,
+    title: 'Acapulco devastado e incomunicado por huracán \'Otis\' | Miércoles 25 de Octubre de 2023',
+    location: 'Acapulco, Guerrero',
+    category: 'urbano',
+    description: 'Edición especial de López-Dóriga: el huracán Otis tocó tierra con vientos de más de 220 km/h. La costa quedó sin comunicación e internet. Récord de intensificación en menos de 10 horas.',
+    recorder: 'López-Dóriga',
+    date: 'Oct 25, 2023',
+    duration: '1 hr 28 min',
+    tags: ['noticias', 'impacto', 'Acapulco', 'SMN', 'Otis'],
+    coords: [-99.87, 16.86],
+    spotify: 'https://open.spotify.com/episode/46UlLVd0GgZRD1Nn9TV2OW',
+  },
+  {
+    id: 47,
+    title: 'Huracán \'Otis\': esta es la razón por la que sorprendió a meteorólogos como categoría 5',
+    location: 'Costa de Guerrero',
+    category: 'natural',
+    description: 'Entrevista con el capitán Leonardo Sánchez para MVS Noticias: por qué el huracán Otis tomó por sorpresa a los meteorólogos que esperaban categoría 1, no 5.',
+    recorder: 'MVS Noticias - Luis Cárdenas',
+    date: 'Oct 25, 2023',
+    duration: '7 min',
+    tags: ['meteorología', 'intensificación', 'SMN', 'categoría 5', 'Otis'],
+    coords: [-99.95, 16.82],
+    spotify: 'https://open.spotify.com/episode/1rWgrlE0OWREs583oJcsNJ',
+  },
+  {
+    id: 48,
+    title: 'Impacto de Otis deja incomunicado a Acapulco | Miércoles 25 de Octubre de 2023',
+    location: 'Acapulco, Guerrero',
+    category: 'urbano',
+    description: 'Ciro Gómez Leyva cubre el impacto del huracán Otis en Guerrero: turista del hotel Princess relata cómo vivió la llegada del huracán; zonas del estado quedan incomunicadas.',
+    recorder: 'Ciro Gómez Leyva por la Mañana',
+    date: 'Oct 25, 2023',
+    duration: '1 hr 55 min',
+    tags: ['radio', 'noticias', 'Acapulco', 'testimonios', 'Otis'],
+    coords: [-99.85, 16.87],
+    spotify: 'https://open.spotify.com/episode/3vy11M0vNjwRVOdq8VDlDg',
+  },
+  {
+    id: 49,
+    title: 'Después de Otis, Guerrero y el tráfico de medicamentos',
+    location: 'Coyuca de Benítez, Guerrero',
+    category: 'trabajo',
+    description: 'A dos semanas de la tragedia en Coyuca Benítez, Guerrero, se vive una contradicción criminal por el tráfico de medicamentos en medio de la crisis humanitaria postOtis.',
+    recorder: 'Territorio Rojo / Nación Criminal',
+    date: 'Nov 8, 2023',
+    duration: '4 min',
+    tags: ['salud', 'medicamentos', 'crimen', 'Guerrero', 'Coyuca'],
+    coords: [-100.09, 17.02],
+    spotify: 'https://open.spotify.com/episode/61m1Jz2yBZTMUxXl7tkpVV',
+  },
+  {
+    id: 50,
+    title: 'Entrevista con Abelina López. El antes, durante y después del huracán Otis',
+    location: 'Acapulco, Guerrero',
+    category: 'ritual',
+    description: 'Entrevista a fondo con Abelina López sobre su experiencia del antes, durante y después del huracán Otis en Acapulco. Testimonio personal de la catástrofe.',
+    recorder: 'Anews Radio',
+    date: 'Dic 1, 2023',
+    duration: '55 min',
+    tags: ['testimonio', 'Abelina López', 'Acapulco', 'experiencia', 'Otis'],
+    coords: [-99.86, 16.84],
+    spotify: 'https://open.spotify.com/episode/0v2UjwXA9OBkwiGHJabhKo',
+  },
+  {
+    id: 51,
+    title: 'OTIS (cumbia)',
+    location: 'Guerrero',
+    category: 'cultural',
+    description: 'Pieza musical tropical del artista Canciones Sanjuanico titulada OTIS, publicada en 2025 en homenaje/memoria del huracán que marcó a Guerrero.',
+    recorder: 'Canciones Sanjuanico',
+    date: '2025',
+    duration: '4:43',
+    tags: ['cumbia', 'música', 'Guerrero', 'tropical', 'Otis'],
+    coords: [-99.91, 16.83],
+    spotify: 'https://open.spotify.com/track/7d2duiq16GGAxz8RMEcj5N',
+  },
+  {
+    id: 52,
+    title: 'El huracán Otis en voz del Zorro Zorreño',
+    location: 'Acapulco, Guerrero',
+    category: 'natural',
+    description: 'El personaje Zorro Zorreño comparte su memoria del huracán Otis en Acapulco y explica el cambio climático y por qué ocurren estos huracanes. Podcast infantil educativo.',
+    recorder: 'MICRODOSIS EDUCATIVA KIDS',
+    date: 'Dic 19, 2024',
+    duration: '3 min',
+    tags: ['educativo', 'infantil', 'cambio climático', 'Acapulco', 'Otis'],
+    coords: [-99.93, 16.86],
+    spotify: 'https://open.spotify.com/episode/5Ecoabympz0zyUXweOOyxr',
+  },
+  {
+    id: 53,
+    title: 'Huracan Otis 1',
+    location: 'Acapulco, Guerrero',
+    category: 'cultural',
+    description: 'Producción musical de Edgar MH & Popoyosky titulada "Huracan Otis 1", publicada en 2025. Pieza electrónica en memoria del fenómeno que devastó Acapulco.',
+    recorder: 'Edgar MH & Popoyosky',
+    date: '2025',
+    duration: '4:32',
+    tags: ['electrónica', 'música', 'Acapulco', 'producción', 'Otis'],
+    coords: [-99.88, 16.83],
+    spotify: 'https://open.spotify.com/track/18K7gK15nDBDb8LcR8G0BW',
+  },
+  {
+    id: 54,
+    title: 'Huracan Otis 2',
+    location: 'Acapulco, Guerrero',
+    category: 'cultural',
+    description: 'Producción musical de Edgar MH & Popoyosky titulada "Huracan Otis 2", publicada en 2025. Segunda parte de la pieza electrónica en memoria del desastre en Acapulco.',
+    recorder: 'Edgar MH & Popoyosky',
+    date: '2025',
+    duration: '5:08',
+    tags: ['electrónica', 'música', 'Acapulco', 'producción', 'Otis'],
+    coords: [-99.89, 16.84],
+    spotify: 'https://open.spotify.com/track/0ofJAxuSaJjxmMyLLh2pXh',
+  },
+  {
+    id: 55,
+    title: 'El Huracán Otis (Chuy Diaz)',
+    location: 'Guerrero',
+    category: 'cultural',
+    description: 'Corrido interpretado por Chuy Diaz Y Su Estilo Huehueteco sobre el huracán Otis, publicado en 2023 desde la perspectiva de la música tradicional de Guerrero.',
+    recorder: 'Chuy Diaz Y Su Estilo Huehueteco',
+    date: '2023',
+    duration: '4:08',
+    tags: ['corrido', 'música', 'Guerrero', 'huapango', 'Otis'],
+    coords: [-99.90, 16.82],
+    spotify: 'https://open.spotify.com/track/0eB5yOiVoW2Up9qWcbgaxe',
+  },
+  {
+    id: 56,
+    title: 'el huracan otis (podcast estudiantil)',
+    location: 'Acapulco, Guerrero',
+    category: 'urbano',
+    description: 'Podcast breve que se centra en cómo afectó el huracán Otis a la población, más que en su formación como fenómeno meteorológico.',
+    recorder: 'Huracan otis (podcast)',
+    date: 'Oct 5, 2024',
+    duration: '5 min',
+    tags: ['educativo', 'afectados', 'Acapulco', 'comunidad', 'Otis'],
+    coords: [-99.84, 16.85],
+    spotify: 'https://open.spotify.com/episode/53lRLZ14Z4dbMP2YziW6Bw',
+  },
+  {
+    id: 57,
+    title: 'Corrido del Huracan Otis / Laurita Garza / Aquilino Petatan',
+    location: 'Guerrero',
+    category: 'cultural',
+    description: 'Corrido en vivo de Chuy Diaz Y Su Estilo Huehueteco con los temas "Corrido del Huracan Otis", "Laurita Garza" y "Aquilino Petatan". Música regional guerrerense.',
+    recorder: 'Chuy Diaz Y Su Estilo Huehueteco',
+    date: '2025',
+    duration: '7:58',
+    tags: ['corrido', 'música en vivo', 'Guerrero', 'regional', 'Otis'],
+    coords: [-99.92, 16.84],
+    spotify: 'https://open.spotify.com/track/49uzfO7GknFf7AcO80xjiK',
+  },
+  {
+    id: 58,
+    title: 'El Huracán Otis (podcast ambiental)',
+    location: 'Acapulco, Guerrero',
+    category: 'natural',
+    description: 'Podcast sobre el huracán Otis y algunas instituciones que protegen el medio ambiente, producido por Santiago Guzmán Márquez.',
+    recorder: 'Santiago Guzmán Márquez',
+    date: 'Dic 1, 2023',
+    duration: '6 min',
+    tags: ['medio ambiente', 'educativo', 'Acapulco', 'instituciones', 'Otis'],
+    coords: [-99.85, 16.83],
+    spotify: 'https://open.spotify.com/show/6Qp5sDapr4WO9VeBnymilM',
+  },
+  {
+    id: 59,
+    title: 'Episodio 1, Especial Desde el Ojo del Huracán Otis',
+    location: 'Acapulco, Guerrero',
+    category: 'ritual',
+    description: 'Primer episodio especial del podcast "Fuera de tu ZONA de confort": testimonio de lo vivido durante el huracán Otis que azotó Acapulco.',
+    recorder: 'Fuera de tu ZONA de confort',
+    date: 'Nov 30, 2024',
+    duration: '39 min',
+    tags: ['testimonio', 'experiencia', 'Acapulco', 'desde adentro', 'Otis'],
+    coords: [-99.87, 16.87],
+    spotify: 'https://open.spotify.com/episode/4OlkIm91HcVRLgC8sfEOn9',
+  },
+  {
+    id: 60,
+    title: 'Huracán Otis (ambient / electrónico)',
+    location: 'Acapulco, Guerrero',
+    category: 'cultural',
+    description: 'Pieza electrónica / ambient del productor Mogo titulada "Huracán Otis", publicada en 2024 en el álbum "Un Sistema de Predicciones".',
+    recorder: 'Mogo',
+    date: '2024',
+    duration: '6:36',
+    tags: ['electrónica', 'ambient', 'producción', 'Acapulco', 'Otis'],
+    coords: [-99.86, 16.82],
+    spotify: 'https://open.spotify.com/track/2EiYpUwYaUsMuF5vmKCBfV',
+  },
+  {
+    id: 61,
+    title: 'Impacto del huracán OTIS en Acapulco',
+    location: 'Acapulco, Guerrero',
+    category: 'natural',
+    description: 'Podcast de Lia Alfaro que informa sobre el gran impacto del huracán Otis categoría 5, de manera inesperada, y las muchas pérdidas que provocó en Acapulco.',
+    recorder: 'Lia Alfaro',
+    date: '2024',
+    duration: '21 min',
+    tags: ['educativo', 'impacto', 'pérdidas', 'Acapulco', 'Otis'],
+    coords: [-99.93, 16.87],
+    spotify: 'https://open.spotify.com/show/7F63z7fFH8838ary6zMzn5',
+  },
+];
+
+/* =================================================================
+   RUTA NARRATIVA — secuencia de escucha
+================================================================= */
+var NARRATIVE_ROUTE = [
+  28, // Punto Cero — autoetnografía
+  2,  // Primeras voces — impacto urbano
+  3,  // Voces desde afuera — CDMX
+  14, // Radio y comunidad — Acceso 95.7
+  5,  // Trabajo, pérdida y reconstrucción — empresarios
+  10, // Memoria cultural y ritual — sobrevivientes
+  24  // Cierre reflexivo — Taxco, memoria
+];
+
+/* =================================================================
+   SPOTIFY UTILS
+================================================================= */
+function convertToSpotifyEmbed(url) {
+  if (!url) return null;
+  try {
+    var u = new URL(url.trim());
+    if (!u.hostname.includes('spotify.com')) return null;
+    var path = u.pathname.replace('/embed', '').replace(/^\/intl-[a-z]+/, '');
+    return 'https://open.spotify.com/embed' + path + '?utm_source=generator&theme=0';
+  } catch (e) { return null; }
+}
+
+/* =================================================================
+   ESTADÍSTICAS DEL CORPUS
+================================================================= */
+function fmtMinutes(m) {
+  if (m === null || isNaN(m)) return '—';
+  var h = Math.floor(m / 60), min = Math.round(m % 60);
+  return h > 0 ? h + 'h ' + min + 'min' : min + ' min';
+}
+
+function updateStats(pts) {
+  var total = pts.length;
+  document.getElementById('sp-count').textContent = total;
+
+  /* Duración */
+  var mins = pts.map(function(p) { return parseDurationMinutes(p.duration); }).filter(function(m) { return m !== null; });
+  var totalMin = mins.reduce(function(a, b) { return a + b; }, 0);
+  document.getElementById('sp-duration').textContent = mins.length ? fmtMinutes(totalMin) : '—';
+  document.getElementById('sp-avg').textContent = mins.length ? fmtMinutes(totalMin / mins.length) : '—';
+  document.getElementById('sp-spotify').textContent = pts.filter(function(p) { return !!p.spotify; }).length;
+
+  /* Por categoría */
+  var catCounts = {};
+  pts.forEach(function(p) { catCounts[p.category] = (catCounts[p.category] || 0) + 1; });
+  var maxCat = Math.max.apply(null, Object.values(catCounts).concat([1]));
+  var catsEl = document.getElementById('sp-cats');
+  catsEl.innerHTML = Object.keys(catCounts).sort(function(a, b) { return catCounts[b] - catCounts[a]; }).map(function(cat) {
+    var c = CATEGORIES[cat] || { color: '#8b949e', label: cat };
+    var pct = Math.round((catCounts[cat] / maxCat) * 100);
+    return '<div class="stat-bar-wrap">' +
+      '<div class="stat-bar-label"><span>' + c.label + '</span><span>' + catCounts[cat] + '</span></div>' +
+      '<div class="stat-bar-bg"><div class="stat-bar-fill" style="width:' + pct + '%;background:' + c.color + '"></div></div>' +
+    '</div>';
+  }).join('');
+
+  /* Por zona geográfica */
+  var zones = { 'Acapulco / Guerrero': 0, 'Ciudad de México': 0, 'Otro': 0 };
+  pts.forEach(function(p) {
+    var loc = (p.location || '').toLowerCase();
+    if (loc.includes('acapulco') || loc.includes('guerrero') || loc.includes('coyuca') || loc.includes('chilpancingo') || loc.includes('taxco') || loc.includes('iguala') || loc.includes('zihuatanejo')) {
+      zones['Acapulco / Guerrero']++;
+    } else if (loc.includes('ciudad de mexico') || loc.includes('cdmx') || loc.includes('mexico')) {
+      zones['Ciudad de México']++;
+    } else {
+      zones['Otro']++;
+    }
+  });
+  var maxZone = Math.max.apply(null, Object.values(zones).concat([1]));
+  var zoneColors = { 'Acapulco / Guerrero': '#ff7b72', 'Ciudad de México': '#58a6ff', 'Otro': '#8b949e' };
+  var zonesEl = document.getElementById('sp-zones');
+  zonesEl.innerHTML = Object.keys(zones).filter(function(z) { return zones[z] > 0; }).map(function(z) {
+    var pct = Math.round((zones[z] / maxZone) * 100);
+    return '<div class="stat-bar-wrap">' +
+      '<div class="stat-bar-label"><span>' + z + '</span><span>' + zones[z] + '</span></div>' +
+      '<div class="stat-bar-bg"><div class="stat-bar-fill" style="width:' + pct + '%;background:' + zoneColors[z] + '"></div></div>' +
+    '</div>';
+  }).join('');
+}
+
+/* =================================================================
+   TIMELINE TEMPORAL
+================================================================= */
+var PERIODS = [
+  { key: 'oct23', label: 'Oct 2023', color: '#ff7b72' },
+  { key: 'nov23', label: 'Nov 2023', color: '#ffa657' },
+  { key: 'dic23', label: 'Dic 2023', color: '#f0c000' },
+  { key: '2024',  label: '2024',     color: '#3fb950' },
+  { key: '2025',  label: '2025',     color: '#58a6ff' }
+];
+
+function buildTimeline() {
+  var track = document.getElementById('timeline-track');
+  var fill  = document.getElementById('timeline-fill');
+
+  /* Contar puntos por período */
+  var counts = {};
+  PERIODS.forEach(function(p) { counts[p.key] = 0; });
+  SOUND_POINTS.forEach(function(p) { var k = getPeriod(p); if (counts[k] !== undefined) counts[k]++; });
+
+  /* Crear dots */
+  PERIODS.forEach(function(period, i) {
+    var pct = (i / (PERIODS.length - 1)) * 100;
+    var dot = document.createElement('div');
+    dot.className = 'tl-dot';
+    dot.dataset.period = period.key;
+    dot.style.left = pct + '%';
+    dot.style.setProperty('--dot-color', period.color);
+    dot.title = period.label + ' (' + counts[period.key] + ' piezas)';
+
+    var lbl = document.createElement('span');
+    lbl.className = 'tl-dot-label';
+    lbl.textContent = period.label;
+    dot.appendChild(lbl);
+
+    var cnt = document.createElement('span');
+    cnt.className = 'tl-dot-count';
+    cnt.textContent = counts[period.key];
+    dot.appendChild(cnt);
+
+    dot.addEventListener('click', function() {
+      var isActive = dot.classList.contains('active');
+      /* desactivar todos */
+      track.querySelectorAll('.tl-dot').forEach(function(d) { d.classList.remove('active'); });
+      document.getElementById('timeline-all').classList.remove('active');
+      if (isActive) {
+        /* segundo clic = deseleccionar → todos */
+        activePeriod = 'all';
+        document.getElementById('timeline-all').classList.add('active');
+        fill.style.left = '0%'; fill.style.right = '0%';
+      } else {
+        dot.classList.add('active');
+        activePeriod = period.key;
+        fill.style.left = '0%';
+        fill.style.right = (100 - pct) + '%';
+      }
+      applyFilter();
+    });
+
+    track.appendChild(dot);
+  });
+
+  /* Botón "todos" */
+  document.getElementById('timeline-all').addEventListener('click', function() {
+    activePeriod = 'all';
+    track.querySelectorAll('.tl-dot').forEach(function(d) { d.classList.remove('active'); });
+    this.classList.add('active');
+    fill.style.left = '0%'; fill.style.right = '0%';
+    applyFilter();
+  });
+}
+
+buildTimeline();
+
+/* Toggle del panel de estadísticas */
+document.getElementById('stats-toggle').addEventListener('click', function() {
+  var panel = document.getElementById('stats-panel');
+  panel.classList.toggle('open');
+  this.classList.toggle('open');
+  var arrow = this.querySelector('.st-arrow');
+  if (arrow) arrow.style.transform = panel.classList.contains('open') ? 'rotate(180deg)' : '';
+});
+
+/* =================================================================
+   ESTADO GLOBAL
+================================================================= */
+var activeCategory = 'all';
+var activeImportance = 'all';  /* Filtro de importancia: 'all' o 'clave' */
+var activePeriod = 'all';      /* Filtro de período temporal */
+var routeMode = false;
+var routeIndex = 0;
+var activePointId  = null;
+var currentPopup   = null;
+
+/* Convierte array de puntos a GeoJSON para el source de Mapbox */
+function pointsToGeoJSON(pts) {
+  return {
+    type: 'FeatureCollection',
+    features: pts.map(function(p) {
+      var cat = CATEGORIES[p.category] || { color: '#8b949e' };
+      return {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: p.coords },
+        properties: { id: p.id, color: cat.color, category: p.category, spotify: (p.spotify || p.audio) ? 1 : 0, importance: p.importance || 0 }
+      };
+    })
+  };
+}
+
+/* =================================================================
+   MAPA
+================================================================= */
+var map = new maplibregl.Map({
+  container: 'map',
+  style: STYLES.dark,
+  center: [-99.5, 18.5],
+  zoom: 7,
+  minZoom: 3,
+  maxZoom: 18,
+  maxBounds: [[-122.0, 12.0], [-83.0, 34.0]],
+});
+
+map.addControl(new maplibregl.NavigationControl(), 'top-left');
+map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+map.addControl(new maplibregl.FullscreenControl(), 'top-left');
+
+/* =================================================================
+   FILTROS
+================================================================= */
+var filtersEl = document.getElementById('filters');
+var usedCats = [];
+SOUND_POINTS.forEach(function(p) {
+  if (usedCats.indexOf(p.category) === -1) usedCats.push(p.category);
+});
+usedCats.forEach(function(cat) {
+  if (!CATEGORIES[cat]) return;
+  var c = CATEGORIES[cat];
+  var btn = document.createElement('button');
+  btn.className = 'filter-btn';
+  btn.dataset.cat = cat;
+  btn.textContent = c.label;
+  btn.style.cssText = 'background:' + c.color + '22;color:' + c.color + ';border-color:' + c.color + '44';
+  filtersEl.appendChild(btn);
+});
+filtersEl.addEventListener('click', function(e) {
+  var btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+
+  if (btn.id === 'route-toggle') {
+    routeMode = !routeMode;
+    btn.classList.toggle('active', routeMode);
+    toggleRouteMode();
+    return;
+  }
+
+  if (btn.id === 'importance-toggle') {
+    activeImportance = activeImportance === 'all' ? 'clave' : 'all';
+    btn.classList.toggle('active', activeImportance === 'clave');
+    applyFilter();
+    return;
+  }
+
+  activeCategory = btn.dataset.cat;
+  document.querySelectorAll('.filter-btn[data-cat]').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  applyFilter();
+  if (activeCategory === 'all') {
+    var pts = getFilteredPoints();
+    if (pts.length) {
+      var bounds = new maplibregl.LngLatBounds(pts[0].coords, pts[0].coords);
+      pts.forEach(function(p) { bounds.extend(p.coords); });
+      map.fitBounds(bounds, { padding: 60, maxZoom: 10, duration: 1200 });
+    }
+  }
+});
+
+/* =================================================================
+   LEYENDA
+================================================================= */
+var legendEl = document.getElementById('legend-items');
+usedCats.forEach(function(cat) {
+  var c = CATEGORIES[cat];
+  legendEl.innerHTML += '<div class="legend-item"><div class="legend-dot" style="background:' + c.color + ';box-shadow:0 0 5px ' + c.color + '"></div>' + c.label + '</div>';
+});
+
+/* =================================================================
+   BUSQUEDA
+================================================================= */
+var searchInput = document.getElementById('search-input');
+var searchClear = document.getElementById('search-clear');
+var noResults   = document.getElementById('no-results');
+var searchQuery = '';
+
+searchInput.addEventListener('input', function(e) {
+  searchQuery = e.target.value.trim();
+  searchClear.style.display = searchQuery ? 'block' : 'none';
+  applyFilter();
+});
+searchClear.addEventListener('click', function() {
+  searchInput.value = ''; searchQuery = '';
+  searchClear.style.display = 'none';
+  applyFilter();
+});
+
+/* =================================================================
+   LISTA EN SIDEBAR
+================================================================= */
+var listEl = document.getElementById('point-list');
+
+function renderList(points) {
+  listEl.innerHTML = '';
+  listEl.appendChild(noResults);
+  points.forEach(function(p) {
+    var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
+    var item = document.createElement('div');
+    item.className = 'point-item' + (p.id === activePointId ? ' active' : '');
+    item.dataset.id = p.id;
+    item.style.setProperty('--cat-color', cat.color);
+    var badge = p.spotify ? ' <span style="color:#1db954;font-size:.65rem">[S]</span>' : '';
+    item.innerHTML =
+      '<div class="point-dot"></div>' +
+      '<div><h3>' + p.title + badge + '</h3>' +
+      '<span>' + cat.label + ' &middot; ' + p.location + '</span></div>';
+    item.addEventListener('click', function() { flyToPoint(p); });
+    listEl.appendChild(item);
+  });
+}
+
+/* =================================================================
+   FILTRO + BUSQUEDA
+================================================================= */
+/* Parsea la fecha de un punto y devuelve el período clave: 'oct23','nov23','dic23','2024','2025','other' */
+function getPeriod(p) {
+  var d = (p.date || '').toLowerCase();
+  if (d.includes('2025')) return '2025';
+  if (d.includes('2024')) return '2024';
+  if (d.includes('dic') || d.includes('dec')) return 'dic23';
+  if (d.includes('nov')) return 'nov23';
+  if (d.includes('oct')) return 'oct23';
+  return 'other';
+}
+
+function getFilteredPoints() {
+  var pts = activeCategory === 'all' ? SOUND_POINTS : SOUND_POINTS.filter(function(p) { return p.category === activeCategory; });
+  if (activeImportance === 'clave') {
+    pts = pts.filter(function(p) { return p.importance && p.importance >= 4; });
+  }
+  if (activePeriod !== 'all') {
+    pts = pts.filter(function(p) { return getPeriod(p) === activePeriod; });
+  }
+  if (searchQuery) {
+    var q = searchQuery.toLowerCase();
+    pts = pts.filter(function(p) {
+      return p.title.toLowerCase().indexOf(q) !== -1 ||
+             p.location.toLowerCase().indexOf(q) !== -1 ||
+             p.description.toLowerCase().indexOf(q) !== -1 ||
+             p.tags.some(function(t) { return t.toLowerCase().indexOf(q) !== -1; });
+    });
+  }
+  return pts;
+}
+
+function applyFilter() {
+  var filtered = getFilteredPoints();
+  /* Con clustering activo, actualizamos los datos de la fuente en lugar de setFilter */
+  if (map.getSource('sounds')) {
+    map.getSource('sounds').setData(
+      pointsToGeoJSON(filtered.filter(function(p) { return p.id !== 28; }))
+    );
+  }
+  /* Punto cero: visible si pasa todos los filtros activos (categoría, importancia, período, búsqueda) */
+  var show28 = filtered.some(function(p) { return p.id === 28; });
+  if (window._pcMarker) {
+    window._pcMarker.getElement().style.display = show28 ? 'flex' : 'none';
+  }
+  renderList(filtered);
+  document.getElementById('visible-count').textContent = filtered.length;
+  updateStats(filtered);
+  noResults.style.display = filtered.length === 0 ? 'block' : 'none';
+  if (currentPopup && !filtered.some(function(p) { return p.id === activePointId; })) {
+    currentPopup.remove(); currentPopup = null;
+  }
+}
+
+/* =================================================================
+   MODO RUTA SONORA — navegación narrativa
+================================================================= */
+function toggleRouteMode() {
+  if (routeMode) {
+    // Activar modo ruta: mostrar línea, resetear índice, ir al primer punto
+    routeIndex = 0;
+    showRoutePath();
+    navigateToRoutePoint(routeIndex);
+  } else {
+    // Desactivar: ocultar línea, volver a modo libre
+    hideRoutePath();
+    routeIndex = 0;
+  }
+}
+
+function showRoutePath() {
+  // Crear GeoJSON con línea conectando puntos de la ruta
+  var routePoints = NARRATIVE_ROUTE.map(function(id) {
+    return SOUND_POINTS.find(function(p) { return p.id === id; });
+  }).filter(Boolean);
+
+  var routeGeoJSON = {
+    type: 'Feature',
+    geometry: {
+      type: 'LineString',
+      coordinates: routePoints.map(function(p) { return p.coords; })
+    }
+  };
+
+  // Agregar fuente y capa para la ruta
+  if (!map.getSource('route-path')) {
+    map.addSource('route-path', {
+      type: 'geojson',
+      data: routeGeoJSON
+    });
+  } else {
+    map.getSource('route-path').setData(routeGeoJSON);
+  }
+
+  if (!map.getLayer('route-line')) {
+    map.addLayer({
+      id: 'route-line',
+      type: 'line',
+      source: 'route-path',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': '#ff7b72',
+        'line-width': 3,
+        'line-opacity': 0.8
+      }
+    });
+  }
+
+  // Hacer zoom para mostrar toda la ruta
+  if (routePoints.length > 1) {
+    var bounds = new maplibregl.LngLatBounds(routePoints[0].coords, routePoints[0].coords);
+    routePoints.forEach(function(p) { bounds.extend(p.coords); });
+    map.fitBounds(bounds, { padding: 80, maxZoom: 8, duration: 1500 });
+  }
+
+  console.log('Ruta narrativa activada');
+}
+
+function hideRoutePath() {
+  // Remover capa y fuente de la ruta
+  if (map.getLayer('route-line')) {
+    map.removeLayer('route-line');
+  }
+  if (map.getSource('route-path')) {
+    map.removeSource('route-path');
+  }
+  console.log('Ruta narrativa desactivada');
+}
+
+function navigateToRoutePoint(index) {
+  if (index < 0 || index >= NARRATIVE_ROUTE.length) return;
+  var pointId = NARRATIVE_ROUTE[index];
+  var point = SOUND_POINTS.find(function(p) { return p.id === pointId; });
+  if (point) {
+    flyToPoint(point);
+  }
+}
+
+function navigateRoute(direction) {
+  routeIndex += direction;
+  if (routeIndex < 0) routeIndex = 0;
+  if (routeIndex >= NARRATIVE_ROUTE.length) routeIndex = NARRATIVE_ROUTE.length - 1;
+  navigateToRoutePoint(routeIndex);
+}
+
+/* =================================================================
+   LAYERS — clustering nativo Mapbox GL JS
+================================================================= */
+function addMapLayers() {
+  /* Limpiar capas y fuentes previas */
+  ['clusters', 'cluster-count', 'spotify-ring', 'unclustered-point'].forEach(function(id) {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource('sounds')) map.removeSource('sounds');
+
+  /* Fuente principal con clustering habilitado (Punto Cero id=28 excluido: es marcador HTML) */
+  map.addSource('sounds', {
+    type: 'geojson',
+    data: pointsToGeoJSON(SOUND_POINTS.filter(function(p) { return p.id !== 28; })),
+    cluster: true,
+    clusterMaxZoom: 13,
+    clusterRadius: 45
+  });
+
+  /* Capa CLUSTERS — círculos que agrupan puntos cercanos */
+  map.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: 'sounds',
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': [
+        'step', ['get', 'point_count'],
+        '#58a6ff',   /* azul: < 10 puntos */
+        10, '#3fb950', /* verde: 10–29 */
+        30, '#ffa657'  /* naranja: >= 30 */
+      ],
+      'circle-radius': [
+        'step', ['get', 'point_count'],
+        18,
+        10, 24,
+        30, 30
+      ],
+      'circle-stroke-width': 3,
+      'circle-stroke-color': 'rgba(255,255,255,0.85)'
+    }
+  });
+
+  /* Capa CONTADOR dentro de cada cluster */
+  map.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: 'sounds',
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-size': 13,
+      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold']
+    },
+    paint: { 'text-color': '#ffffff' }
+  });
+
+  /* Anillo de resplandor para puntos con alta importancia */
+  map.addLayer({
+    id: 'importance-halo',
+    type: 'circle',
+    source: 'sounds',
+    filter: ['all', ['!has', 'point_count'], ['>=', 'importance', 4]],
+    paint: {
+      'circle-color': ['get', 'color'],
+      'circle-radius': 18,
+      'circle-opacity': 0.15
+    }
+  });
+
+  /* Anillo verde para puntos individuales con Spotify */
+  map.addLayer({
+    id: 'spotify-ring',
+    type: 'circle',
+    source: 'sounds',
+    filter: ['all', ['!has', 'point_count'], ['==', 'spotify', 1]],
+    paint: {
+      'circle-color': 'rgba(0,0,0,0)',
+      'circle-radius': 15,
+      'circle-stroke-width': 2.5,
+      'circle-stroke-color': '#1db954'
+    }
+  });
+
+  /* Capa PUNTOS INDIVIDUALES (no agrupados) con jerarquía visual */
+  map.addLayer({
+    id: 'unclustered-point',
+    type: 'circle',
+    source: 'sounds',
+    filter: ['!has', 'point_count'],
+    paint: {
+      'circle-color': ['get', 'color'],
+      'circle-radius': [
+        'case',
+        ['>=', ['get', 'importance'], 4],
+        14,  /* Puntos clave de la ruta: más grandes */
+        10   /* Puntos normales */
+      ],
+      'circle-stroke-width': [
+        'case',
+        ['>=', ['get', 'importance'], 4],
+        3.5,
+        2.5
+      ],
+      'circle-stroke-color': '#fff',
+      'circle-opacity': [
+        'case',
+        ['>=', ['get', 'importance'], 4],
+        1,
+        0.9
+      ]
+    }
+  });
+
+  /* Punto Cero (id=28) se renderiza como marcador HTML — no entra en clustering */
+} /* fin addMapLayers */
+
+/* Marcador HTML Punto Cero — se inicializa una sola vez */
+function initPcMarker() {
+  var pcEl = document.createElement('div');
+  pcEl.className = 'pc-marker';
+  pcEl.innerHTML =
+    '<div class="pc-ring"></div>' +
+    '<div class="pc-ring"></div>' +
+    '<div class="pc-ring"></div>' +
+    '<div class="pc-core">&#127897;</div>' +
+    '<span class="pc-label">PUNTO CERO</span>';
+  pcEl.title = 'Punto Cero — Autoetnografía Sonora';
+  var p28 = SOUND_POINTS.find(function(p) { return p.id === 28; });
+  window._pcMarker = new maplibregl.Marker({ element: pcEl, anchor: 'center' })
+    .setLngLat(p28.coords)
+    .addTo(map);
+  pcEl.addEventListener('click', function() { flyToPoint(p28); });
+}
+
+map.on('load', function() {
+  addMapLayers();
+  initPcMarker();
+
+  /* Clic en CLUSTER — hacer zoom para expandir */
+  map.on('click', 'clusters', function(e) {
+    var features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+    var clusterId = features[0].properties.cluster_id;
+    map.getSource('sounds').getClusterExpansionZoom(clusterId, function(err, zoom) {
+      if (err) return;
+      map.easeTo({ center: features[0].geometry.coordinates, zoom: zoom + 0.5 });
+    });
+  });
+
+  /* Clic en PUNTO INDIVIDUAL — abrir popup */
+  map.on('click', 'unclustered-point', function(e) {
+    var props = e.features[0].properties;
+    var p = SOUND_POINTS.find(function(sp) { return sp.id === props.id; });
+    if (p) flyToPoint(p);
+  });
+
+  map.on('mouseenter', 'clusters', function() { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'clusters', function() { map.getCanvas().style.cursor = ''; });
+
+  /* Tooltip en hover sobre puntos individuales */
+  var tooltip = document.getElementById('map-tooltip');
+  map.on('mouseenter', 'unclustered-point', function(e) {
+    map.getCanvas().style.cursor = 'pointer';
+    var props = e.features[0].properties;
+    var p = SOUND_POINTS.find(function(sp) { return sp.id === props.id; });
+    if (!p) return;
+    var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro' };
+    var mins = parseDurationMinutes(p.duration);
+    tooltip.innerHTML =
+      '<div class="tt-cat" style="color:' + cat.color + '">' + cat.label + '</div>' +
+      '<div class="tt-title">' + p.title + '</div>' +
+      '<div class="tt-meta">' + p.recorder + (mins ? ' &middot; ' + Math.round(mins) + ' min' : '') + '</div>';
+    tooltip.classList.add('visible');
+  });
+  map.on('mousemove', 'unclustered-point', function(e) {
+    var rect = map.getCanvas().getBoundingClientRect();
+    var x = e.originalEvent.clientX - rect.left + 14;
+    var y = e.originalEvent.clientY - rect.top - 14;
+    /* evitar que se salga por la derecha */
+    if (x + 230 > rect.width) x = e.originalEvent.clientX - rect.left - 234;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  });
+  map.on('mouseleave', 'unclustered-point', function() {
+    map.getCanvas().style.cursor = '';
+    tooltip.classList.remove('visible');
+  });
+
+  applyFilter();
+
+  /* URL deeplink: abrir punto directamente si hay ?id=N en la URL */
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    var idParam = parseInt(params.get('id'), 10);
+    if (idParam) {
+      var p = SOUND_POINTS.find(function(sp) { return sp.id === idParam; });
+      if (p) setTimeout(function() { flyToPoint(p); }, 900);
+    }
+  })();
+});
+
+/* Copiar link al punto actual al portapapeles */
+function sharePoint(id) {
+  var url = window.location.origin + window.location.pathname + '?id=' + id;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() { showShareToast(); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showShareToast();
+  }
+}
+
+function showShareToast() {
+  var t = document.getElementById('share-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'share-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:9px 20px;border-radius:20px;font-size:.78rem;font-weight:600;z-index:999;pointer-events:none;transition:opacity .4s';
+    document.body.appendChild(t);
+  }
+  t.textContent = '✓ Enlace copiado al portapapeles';
+  t.style.opacity = '1';
+  clearTimeout(t._to);
+  t._to = setTimeout(function() { t.style.opacity = '0'; }, 2400);
+}
+
+/* =================================================================
+   POPUP
+================================================================= */
+function flyToPoint(p) {
+  activePointId = p.id;
+  map.flyTo({ center: p.coords, zoom: Math.max(map.getZoom(), 11), speed: 1.2, curve: 1.4 });
+  document.querySelectorAll('.point-item').forEach(function(el) {
+    el.classList.toggle('active', +el.dataset.id === p.id);
+  });
+  if (currentPopup) currentPopup.remove();
+  currentPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: false, maxWidth: '340px', offset: 20 })
+    .setLngLat(p.coords)
+    .setHTML(buildPopupHTML(p))
+    .addTo(map);
+  currentPopup.on('close', function() { activePointId = null; });
+}
+
+/* Convierte "HH:MM:SS" o "MM:SS" a minutos totales */
+function parseDurationMinutes(dur) {
+  if (!dur || dur === '--:--' || dur === '--') return null;
+  var parts = dur.replace(' min', '').replace(' hr', 'h').trim().split(':').map(Number);
+  if (parts.length === 3) return parts[0] * 60 + parts[1] + parts[2] / 60;
+  if (parts.length === 2) return parts[0] + parts[1] / 60;
+  return null;
+}
+
+/* Clasifica el tipo de fuente por categoría y tags */
+function getSourceType(p) {
+  if (p.id === 28) return { label: 'Autoetnografía', color: '#d2a8ff', icon: '✍️' };
+  var tags = p.tags.join(' ').toLowerCase();
+  var title = p.title.toLowerCase();
+  if (tags.includes('corrido') || tags.includes('cancion') || tags.includes('musica')) return { label: 'Música Popular', color: '#1db954', icon: '🎵' };
+  if (tags.includes('poesia') || tags.includes('ensayo')) return { label: 'Ensayo Sonoro', color: '#d2a8ff', icon: '📝' };
+  if (tags.includes('debate') || title.includes('debate') || title.includes('contradebate')) return { label: 'Debate Analítico', color: '#58a6ff', icon: '⚖️' };
+  if (tags.includes('testimonio') || tags.includes('sobrevivientes') || tags.includes('vivencial')) return { label: 'Testimonio', color: '#ffa657', icon: '🎙️' };
+  if (tags.includes('periodismo') || tags.includes('cronica') || tags.includes('noticias')) return { label: 'Periodismo', color: '#ff7b72', icon: '📰' };
+  if (tags.includes('radio')) return { label: 'Radio', color: '#3fb950', icon: '📻' };
+  if (tags.includes('reflexion') || tags.includes('elaboracion')) return { label: 'Reflexión', color: '#d2a8ff', icon: '🔍' };
+  if (p.category === 'natural') return { label: 'Divulgación', color: '#3fb950', icon: '🌿' };
+  return { label: 'Documental', color: '#8b949e', icon: '🎧' };
+}
+
+function buildPopupHTML(p) {
+  var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
+  var srcType = getSourceType(p);
+
+  /* Portada especial para punto cero (id 28) */
+  var coverImg = '';
+  if (p.id === 28) {
+    coverImg = '<img class="popup-cover-img" src="portada punto cero.png" alt="Portada Punto Cero" />' +
+               '<div class="popup-cover-badge">&#9679; Punto Cero — Autoetnografía</div>';
+  }
+
+  /* Barra de duración */
+  var durBar = '';
+  var mins = parseDurationMinutes(p.duration);
+  if (mins !== null) {
+    var pct = Math.min(100, Math.round((mins / 90) * 100));
+    var durLabel = mins < 1 ? 'menos de 1 min' : Math.round(mins) + ' min';
+    durBar =
+      '<div style="margin:8px 0 4px">' +
+        '<div style="display:flex;justify-content:space-between;font-size:.65rem;color:#8b949e;margin-bottom:3px">' +
+          '<span>⏱ Duración</span><span>' + durLabel + '</span>' +
+        '</div>' +
+        '<div style="background:#21262d;border-radius:4px;height:4px;overflow:hidden">' +
+          '<div style="width:' + pct + '%;height:100%;background:' + cat.color + ';opacity:.7"></div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  var tags = p.tags.map(function(t) {
+    return '<span style="background:#21262d;padding:2px 7px;border-radius:10px;font-size:.65rem;color:#8b949e">#' + t + '</span>';
+  }).join(' ');
+
+  var audioBlock = '';
+  if (p.spotify) {
+    var embedUrl = convertToSpotifyEmbed(p.spotify);
+    var isLong = p.spotify.indexOf('/playlist/') !== -1 || p.spotify.indexOf('/show/') !== -1;
+    var h = isLong ? 232 : 152;
+    var openUrl = p.spotify.split('?')[0];
+    audioBlock =
+      '<div class="spotify-wrap">' +
+        '<iframe src="' + embedUrl + '" height="' + h + '" ' +
+          'allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" ' +
+          'loading="lazy"></iframe>' +
+      '</div>' +
+      '<a class="spotify-link" href="' + openUrl + '" target="_blank" rel="noopener noreferrer">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="#1db954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>' +
+        ' Abrir en Spotify' +
+      '</a>';
+  } else if (p.audio) {
+    audioBlock =
+      '<div class="audio-wrap">' +
+        '<iframe src="' + p.audio + '" width="100%" height="180" frameborder="0" scrolling="no" allowfullscreen ' +
+          'title="Audio etnografia sonora" style="border-radius:8px;display:block;"></iframe>' +
+      '</div>';
+  } else {
+    audioBlock = '<div class="spotify-no-audio">Sin audio asignado — agrega el link de Spotify en SOUND_POINTS[].spotify</div>';
+  }
+
+  /* Posición en ruta narrativa + período */
+  var routePos = NARRATIVE_ROUTE.indexOf(p.id);
+  var routeBadge = routePos !== -1 ?
+    '<span style="background:#1f6feb22;border:1px solid #1f6feb66;color:#58a6ff;padding:2px 7px;border-radius:10px;font-size:.65rem;font-weight:700">Ruta #' + (routePos + 1) + '</span>' : '';
+  var period = PERIODS.find(function(pr) { return pr.key === getPeriod(p); });
+  var periodBadge = period ?
+    '<span style="background:' + period.color + '18;border:1px solid ' + period.color + '44;color:' + period.color + ';padding:2px 7px;border-radius:10px;font-size:.65rem">' + period.label + '</span>' : '';
+
+  return coverImg +
+    /* Cabecera con categoría y tipo de fuente */
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+      '<div class="popup-category" style="color:' + cat.color + ';margin:0">' + cat.emoji + ' ' + cat.label + '</div>' +
+      '<span style="font-size:.68rem;color:' + srcType.color + ';font-weight:600">' + srcType.icon + ' ' + srcType.label + '</span>' +
+    '</div>' +
+    /* Badge de importancia, período y ruta */
+    (p.importance && p.importance >= 4 ? '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">' +
+      '<span style="background:#ffa65722;border:1px solid #ffa65766;color:#ffa657;padding:2px 7px;border-radius:10px;font-size:.65rem;font-weight:700">★ Punto Clave</span>' +
+      routeBadge + periodBadge +
+    '</div>' : '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">' + routeBadge + periodBadge + '</div>') +
+    '<div class="popup-title">' + p.title + '</div>' +
+    /* Metadatos con iconos */
+    '<div style="margin:6px 0 8px;display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:.72rem;color:#8b949e">' +
+      '<span>📍 ' + p.location.split(',')[0] + '</span>' +
+      '<span>📅 ' + p.date + '</span>' +
+      '<span>🎙 ' + p.recorder + '</span>' +
+      (mins !== null ? '<span>⏱ ' + (Math.round(mins)) + ' min</span>' : '') +
+    '</div>' +
+    '<div style="border-top:1px solid #21262d;padding-top:8px;margin-bottom:8px">' +
+      '<div class="popup-desc">' + p.description + '</div>' +
+    '</div>' +
+    durBar +
+    audioBlock +
+    '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">' + tags + '</div>' +
+    '<div style="margin-top:10px;display:flex;justify-content:flex-end">' +
+      '<button onclick="sharePoint(' + p.id + ')" style="background:none;border:none;color:#8b949e;font-size:.7rem;cursor:pointer;display:flex;align-items:center;gap:4px;padding:0" title="Copiar enlace a este punto">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' +
+        ' Compartir punto' +
+      '</button>' +
+    '</div>' +
+    (routeMode ? '<div style="margin-top:12px;border-top:1px solid #21262d;padding-top:10px;display:flex;gap:8px;justify-content:center">' +
+      '<button onclick="navigateRoute(-1)" style="padding:6px 12px;background:#30363d;color:#c9d1d9;border:none;border-radius:4px;cursor:pointer;font-size:.75rem"' + (routeIndex <= 0 ? ' disabled' : '') + '>← Anterior</button>' +
+      '<span style="align-self:center;font-size:.75rem;color:#8b949e">' + (routeIndex + 1) + ' de ' + NARRATIVE_ROUTE.length + '</span>' +
+      '<button onclick="navigateRoute(1)" style="padding:6px 12px;background:#30363d;color:#c9d1d9;border:none;border-radius:4px;cursor:pointer;font-size:.75rem"' + (routeIndex >= NARRATIVE_ROUTE.length - 1 ? ' disabled' : '') + '>Siguiente →</button>' +
+    '</div>' : '');
+}
+
+/* =================================================================
+   VER TODOS
+================================================================= */
+document.getElementById('btn-fit').addEventListener('click', function() {
+  var pts = getFilteredPoints();
+  if (!pts.length) return;
+  var bounds = new maplibregl.LngLatBounds(pts[0].coords, pts[0].coords);
+  pts.forEach(function(p) { bounds.extend(p.coords); });
+  map.fitBounds(bounds, { padding: 60, maxZoom: 10, duration: 1200 });
+});
+
+/* =================================================================
+   EXPORTAR GeoJSON
+================================================================= */
+document.getElementById('btn-export').addEventListener('click', function() {
+  var geojson = {
+    type: 'FeatureCollection',
+    features: getFilteredPoints().map(function(p) {
+      return {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: p.coords },
+        properties: {
+          id: p.id, title: p.title, location: p.location,
+          category: p.category, recorder: p.recorder,
+          date: p.date, duration: p.duration,
+          description: p.description, tags: p.tags.join(', '),
+          spotify: p.spotify || ''
+        }
+      };
+    })
+  };
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' }));
+  a.download = 'etnografia-sonora.geojson';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* estilo fijo: dark-matter */
+
+/* =================================================================
+   FAB — AGREGAR PUNTO
+================================================================= */
+var fabBtn       = document.getElementById('fab-add');
+var modalOverlay = document.getElementById('modal-overlay');
+var pendingCoords = null;
+var tempMarker    = null;
+var nextId        = SOUND_POINTS.length + 1;
+
+/* Poblar categorias en modal */
+var catSelect = document.getElementById('f-category');
+Object.keys(CATEGORIES).forEach(function(key) {
+  var opt = document.createElement('option');
+  opt.value = key;
+  opt.textContent = CATEGORIES[key].label;
+  catSelect.appendChild(opt);
+});
+
+fabBtn.addEventListener('click', function() {
+  var isActive = document.body.classList.toggle('adding-mode');
+  fabBtn.classList.toggle('active', isActive);
+  if (!isActive && tempMarker) { tempMarker.remove(); tempMarker = null; }
+});
+
+map.on('click', function(e) {
+  if (!document.body.classList.contains('adding-mode')) return;
+  e.preventDefault();
+  pendingCoords = [+e.lngLat.lng.toFixed(6), +e.lngLat.lat.toFixed(6)];
+  if (tempMarker) tempMarker.remove();
+  var el2 = document.createElement('div');
+  el2.style.cssText = 'width:18px;height:18px;background:#1f6feb;border:3px solid #fff;border-radius:50%;box-shadow:0 0 10px #1f6feb;';
+  tempMarker = new maplibregl.Marker({ element: el2 }).setLngLat(pendingCoords).addTo(map);
+  document.getElementById('f-coords').textContent = pendingCoords[1] + ' N,  ' + pendingCoords[0] + ' O';
+  modalOverlay.classList.add('open');
+});
+
+function closeModal() {
+  modalOverlay.classList.remove('open');
+  document.body.classList.remove('adding-mode');
+  fabBtn.classList.remove('active');
+  if (tempMarker) { tempMarker.remove(); tempMarker = null; }
+  ['f-title','f-location','f-recorder','f-desc','f-tags','f-duration','f-spotify'].forEach(function(id) {
+    var el3 = document.getElementById(id);
+    if (el3) el3.value = '';
+  });
+  document.getElementById('f-coords').textContent = 'Haz clic en el mapa primero';
+  pendingCoords = null;
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-cancel').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', function(e) { if (e.target === modalOverlay) closeModal(); });
+
+document.getElementById('modal-save').addEventListener('click', function() {
+  var title    = document.getElementById('f-title').value.trim();
+  var location = document.getElementById('f-location').value.trim();
+  var category = document.getElementById('f-category').value;
+  if (!title || !location || !pendingCoords) {
+    alert('Completa los campos obligatorios (*) y coloca el punto en el mapa.');
+    return;
+  }
+  var rawTags    = document.getElementById('f-tags').value;
+  var spotifyRaw = document.getElementById('f-spotify').value.trim();
+  var embedUrl   = convertToSpotifyEmbed(spotifyRaw);
+
+  var newPoint = {
+    id:          nextId++,
+    title:       title,
+    location:    location,
+    category:    category,
+    description: document.getElementById('f-desc').value.trim() || 'Sin descripcion.',
+    recorder:    document.getElementById('f-recorder').value.trim() || 'Anonimo',
+    date:        new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }),
+    duration:    document.getElementById('f-duration').value.trim() || '0:00',
+    tags:        rawTags ? rawTags.split(',').map(function(t) { return t.trim(); }).filter(Boolean) : [],
+    coords:      pendingCoords,
+    spotify:     embedUrl || (spotifyRaw || null),
+  };
+
+  SOUND_POINTS.push(newPoint);
+
+  /* Actualizar fuente con el nuevo punto */
+  if (map.getSource('sounds')) {
+    map.getSource('sounds').setData(pointsToGeoJSON(SOUND_POINTS.filter(function(p) { return p.id !== 28; })));
+  }
+
+  if (tempMarker) { tempMarker.remove(); tempMarker = null; }
+  closeModal();
+  applyFilter();
+  flyToPoint(newPoint);
+});
+
+/* =================================================================
+   PORTADA SPLASH — lógica de entrada + efecto Otis
+================================================================= */
+(function () {
+  var splash   = document.getElementById('cover-splash');
+  var audio    = document.getElementById('cover-audio');
+  var soundBtn = document.getElementById('cover-sound-btn');
+  var sndIcon  = soundBtn.querySelector('.snd-icon');
+  var sndLabel = document.getElementById('snd-label');
+
+  /* Ken-Burns */
+  setTimeout(function () { splash.classList.add('visible'); }, 60);
+
+  /* ── EFECTO HURACÁN: destrucción del título ───────────────────
+     Las letras salen volando una a una mientras el audio suena.
+     Si se silencia, el viento para; al reactivar, continúa.
+  ────────────────────────────────────────────────────────────── */
+  function splitToChars(el) {
+    var raw = el.textContent;
+    el.textContent = '';
+    /* Agrupamos por palabras para que el salto de línea solo ocurra entre palabras */
+    raw.split(' ').forEach(function (word, wi, arr) {
+      var wordWrap = document.createElement('span');
+      wordWrap.style.cssText = 'display:inline-block; white-space:nowrap;';
+      word.split('').forEach(function (ch) {
+        var s = document.createElement('span');
+        s.className = 'char';
+        s.textContent = ch;
+        wordWrap.appendChild(s);
+      });
+      el.appendChild(wordWrap);
+      /* espacio entre palabras (no en la última) */
+      if (wi < arr.length - 1) {
+        el.appendChild(document.createTextNode(' '));
+      }
+    });
+  }
+  document.querySelectorAll('.cover-title .ct-kicker, .cover-title .ct-of, .cover-title .ct-sub')
+    .forEach(splitToChars);
+
+  /* Cola: sólo letras visibles (no espacios) */
+  var queue = Array.from(document.querySelectorAll('.cover-title .char'))
+    .filter(function (c) { return c.textContent.trim() !== ''; });
+  /* Mezcla ligera: agrupa en bloques de 3 para mantener cierto orden */
+  (function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * Math.min(i + 1, 4));
+      var t = a[i]; a[i] = a[i - j] || a[i]; a[i - j] = t;
+    }
+  })(queue);
+
+  var blowTimer = null;
+
+  function rnd(mn, mx) { return mn + Math.random() * (mx - mn); }
+
+  function blowOne() {
+    if (!queue.length) return;
+    var ch = queue.shift();
+    var isDrift = Math.random() < 0.12;  /* 12% queda semi-visible, resto desaparece */
+    ch.style.setProperty('--tx', rnd(30, 300) * (Math.random() > 0.15 ? 1 : -1) + 'px');
+    ch.style.setProperty('--ty', rnd(-200, 60) + 'px');
+    ch.style.setProperty('--tr', rnd(-220, 220) + 'deg');
+    ch.style.setProperty('--dur', rnd(0.65, 1.9) + 's');
+    ch.classList.add(isDrift ? 'char-drift' : 'char-blown');
+  }
+
+  function startBlowing() {
+    if (blowTimer || !queue.length) return;
+    (function tick() {
+      blowOne();
+      if (!queue.length) { blowTimer = null; return; }
+      blowTimer = setTimeout(tick, rnd(320, 950));
+    })();
+  }
+
+  function stopBlowing() {
+    clearTimeout(blowTimer);
+    blowTimer = null;
+  }
+
+  /* ── AUDIO ────────────────────────────────────────────────── */
+  audio.muted  = false;
+  audio.volume = 0.75;
+  audio.play().then(function () {
+    soundBtn.classList.remove('blocked');
+    sndIcon.textContent  = '🔊';
+    sndLabel.textContent = 'Silenciar';
+    startBlowing();
+  }).catch(function () {
+    audio.muted = true;
+    audio.play().catch(function () {});
+    soundBtn.classList.add('blocked');
+    sndIcon.innerHTML    = '&#128264;';
+    sndLabel.textContent = 'Activar sonido';
+    /* sin sonido → sin viento */
+  });
+
+  soundBtn.addEventListener('click', function () {
+    if (audio.muted || audio.paused) {
+      audio.muted = false;
+      if (audio.paused) audio.play().catch(function () {});
+      soundBtn.classList.remove('blocked');
+      sndIcon.textContent  = '🔊';
+      sndLabel.textContent = 'Silenciar';
+      startBlowing();   /* viento retoma */
+    } else {
+      audio.muted = true;
+      sndIcon.innerHTML    = '&#128264;';
+      sndLabel.textContent = 'Activar sonido';
+      stopBlowing();    /* viento para */
+    }
+  });
+
+  /* ── ENTRADA AL MAPA ─────────────────────────────────────── */
+  document.getElementById('cover-enter').addEventListener('click', function () {
+    stopBlowing();
+    splash.classList.add('exiting');
+    var fade = setInterval(function () {
+      if (!audio.muted && audio.volume > 0.06) {
+        audio.volume = Math.max(0, audio.volume - 0.06);
+      } else {
+        audio.pause();
+        audio.volume = 0;
+        clearInterval(fade);
+      }
+    }, 40);
+    setTimeout(function () {
+      splash.style.display = 'none';
+      if (typeof map !== 'undefined') map.resize();
+    }, 680);
+  });
+  /* Panel de instrucciones: cerrar */
+  document.getElementById('info-close').addEventListener('click', function () {
+    document.getElementById('info-panel').classList.add('hidden');
+  });
+
+})();
+</script>
+</body>
+</html>
