@@ -170,6 +170,7 @@
 
     /* FAB */
     #fab-add { position: absolute; bottom: 80px; right: 12px; width: 44px; height: 44px; border-radius: 50%; background: #1f6feb; border: none; color: #fff; font-size: 22px; cursor: pointer; z-index: 5; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px #0008; transition: transform .2s, background .2s; }
+    @media (max-width: 768px) { #fab-add { display: none; } #fab-hint { display: none !important; } }
     #fab-add:hover { transform: scale(1.1); background: #388bfd; }
     #fab-add.active { background: #da3633; transform: rotate(45deg); }
     #fab-hint { position: absolute; bottom: 132px; right: 62px; background: #161b22cc; backdrop-filter: blur(8px); border: 1px solid #30363d; border-radius: 6px; padding: 6px 10px; font-size: .72rem; color: #f0f6fc; white-space: nowrap; display: none; z-index: 5; }
@@ -2326,6 +2327,11 @@ function showShareToast() {
 /* =================================================================
    POPUP
 ================================================================= */
+window.closeCurrentPopup = function() {
+  if (currentPopup) { currentPopup.remove(); currentPopup = null; }
+  activePointId = null;
+};
+
 function flyToPoint(p) {
   activePointId = p.id;
   map.flyTo({ center: p.coords, zoom: Math.max(map.getZoom(), 11), speed: 1.2, curve: 1.4 });
@@ -2333,11 +2339,11 @@ function flyToPoint(p) {
     el.classList.toggle('active', +el.dataset.id === p.id);
   });
   if (currentPopup) currentPopup.remove();
-  currentPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: false, maxWidth: '340px', offset: 20 })
+  currentPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: true, maxWidth: '340px', offset: 20 })
     .setLngLat(p.coords)
     .setHTML(buildPopupHTML(p))
     .addTo(map);
-  currentPopup.on('close', function() { activePointId = null; });
+  currentPopup.on('close', function() { activePointId = null; currentPopup = null; });
 }
 
 /* Convierte "HH:MM:SS" o "MM:SS" a minutos totales */
@@ -2368,6 +2374,20 @@ function getSourceType(p) {
 function buildPopupHTML(p) {
   var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
   var srcType = getSourceType(p);
+
+  /* Barra de control accesible (siempre visible, especialmente en móvil) */
+  var closebar =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+      '<button onclick="closeCurrentPopup()" ' +
+        'style="background:#21262d;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;' +
+               'font-size:.8rem;padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;' +
+               'min-height:36px;touch-action:manipulation">' +
+        '&#8592; Lista</button>' +
+      '<button onclick="closeCurrentPopup()" ' +
+        'style="background:#21262d;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;' +
+               'font-size:.9rem;padding:6px 12px;cursor:pointer;min-height:36px;touch-action:manipulation">' +
+        '&#10005;</button>' +
+    '</div>';
 
   /* Portada especial para punto cero (id 28) */
   var coverImg = '';
@@ -2431,7 +2451,7 @@ function buildPopupHTML(p) {
   var periodBadge = period ?
     '<span style="background:' + period.color + '18;border:1px solid ' + period.color + '44;color:' + period.color + ';padding:2px 7px;border-radius:10px;font-size:.65rem">' + period.label + '</span>' : '';
 
-  return coverImg +
+  return closebar + coverImg +
     /* Cabecera con categoría y tipo de fuente */
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
       '<div class="popup-category" style="color:' + cat.color + ';margin:0">' + cat.emoji + ' ' + cat.label + '</div>' +
