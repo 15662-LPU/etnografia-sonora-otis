@@ -229,6 +229,58 @@
     /* Tooltip: oculto en dispositivos táctiles (no hace falta hover) */
     @media (hover: none) { #map-tooltip { display: none !important; } }
 
+    /* ── AUDIO SHEET (móvil) ─────────────────────────────────── */
+    #audio-sheet {
+      display: none;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 500;
+      background: #161b22;
+      border-top: 2px solid #30363d;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -8px 32px #000c;
+      max-height: 72vh;
+      flex-direction: column;
+      overscroll-behavior: contain;
+    }
+    #audio-sheet.open { display: flex; }
+    #audio-sheet-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 10px 14px 6px;
+      flex-shrink: 0;
+      border-bottom: 1px solid #30363d;
+    }
+    /* franja de arrastre visual */
+    #audio-sheet-bar::before {
+      content: '';
+      position: absolute;
+      left: 50%; transform: translateX(-50%);
+      top: 8px;
+      width: 36px; height: 4px;
+      background: #30363d;
+      border-radius: 2px;
+    }
+    #audio-sheet-close {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: .82rem;
+      padding: 7px 14px;
+      cursor: pointer;
+      min-height: 36px;
+      touch-action: manipulation;
+    }
+    #audio-sheet-body {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding: 14px 16px 24px;
+    }
+
     /* Mobile nav — oculto en escritorio */
     #mobile-nav { display: none; }
 
@@ -2342,6 +2394,9 @@ function showShareToast() {
 ================================================================= */
 window.closeCurrentPopup = function() {
   if (currentPopup) { currentPopup.remove(); currentPopup = null; }
+  var sheet = document.getElementById('audio-sheet');
+  sheet.classList.remove('open');
+  sheet.setAttribute('aria-hidden', 'true');
   activePointId = null;
 };
 
@@ -2351,12 +2406,26 @@ function flyToPoint(p) {
   document.querySelectorAll('.point-item').forEach(function(el) {
     el.classList.toggle('active', +el.dataset.id === p.id);
   });
-  if (currentPopup) currentPopup.remove();
-  currentPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: true, maxWidth: '340px', offset: 20 })
-    .setLngLat(p.coords)
-    .setHTML(buildPopupHTML(p))
-    .addTo(map);
-  currentPopup.on('close', function() { activePointId = null; currentPopup = null; });
+  if (currentPopup) { currentPopup.remove(); currentPopup = null; }
+
+  var isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+  if (isMobile) {
+    /* Móvil: mostrar en panel fijo — completamente fuera del DOM de MapLibre */
+    var sheet     = document.getElementById('audio-sheet');
+    var sheetBody = document.getElementById('audio-sheet-body');
+    sheetBody.innerHTML = buildPopupHTML(p);
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden', 'false');
+    sheetBody.scrollTop = 0;
+  } else {
+    /* Escritorio: popup flotante normal */
+    currentPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: true, maxWidth: '340px', offset: 20 })
+      .setLngLat(p.coords)
+      .setHTML(buildPopupHTML(p))
+      .addTo(map);
+    currentPopup.on('close', function() { activePointId = null; currentPopup = null; });
+  }
 }
 
 /* Convierte "HH:MM:SS" o "MM:SS" a minutos totales */
@@ -2758,7 +2827,20 @@ document.getElementById('modal-save').addEventListener('click', function() {
     document.getElementById('info-panel').classList.add('hidden');
   });
 
+  /* Audio sheet: botón cerrar */
+  document.getElementById('audio-sheet-close').addEventListener('click', function () {
+    closeCurrentPopup();
+  });
+
 })();
 </script>
+
+<!-- AUDIO SHEET (móvil) — panel fijo fuera del DOM de MapLibre -->
+<div id="audio-sheet" aria-hidden="true">
+  <div id="audio-sheet-bar">
+    <button id="audio-sheet-close" aria-label="Cerrar">&#10005; Cerrar</button>
+  </div>
+  <div id="audio-sheet-body"></div>
+</div>
 </body>
 </html>
