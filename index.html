@@ -230,46 +230,79 @@
 
     @media (max-width: 768px) {
       body { flex-direction: column; }
-      #sidebar {
-        width: 100%; min-width: 0;
-        max-height: 40vh;
-        border-right: none;
-        border-bottom: 1px solid #30363d;
-        overflow: hidden;
-        display: flex; flex-direction: column;
+
+      /* MAPA — va primero y ocupa la mayor parte de la pantalla */
+      #map {
         order: -1;
+        flex: 0 0 58vh;
+        min-height: 0;
+        border-bottom: 1px solid #30363d;
       }
-      /* Ocultar elementos pesados del sidebar en móvil */
-      #sidebar-header { display: none; }
-      #filters { display: none; }
-      #search-wrap { display: none; }
-      #timeline-wrap { display: none; }
-      #stats-toggle { display: none; }
-      #stats-panel { display: none; }
-      #sidebar-footer { display: none; }
-      /* Mostrar barra compacta de navegación */
+
+      /* SIDEBAR — franja inferior con controles y lista */
+      #sidebar {
+        width: 100%;
+        min-width: 0;
+        flex: 1;
+        min-height: 0;
+        max-height: 42vh;
+        border-right: none;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Ocultar elementos pesados en móvil */
+      #sidebar-header  { display: none; }
+      #filters         { display: none; }
+      #search-wrap     { display: none; }
+      #timeline-wrap   { display: none; }
+      #stats-toggle    { display: none; }
+      #stats-panel     { display: none; }
+      #sidebar-footer  { display: none; }
+
+      /* Barra compacta de navegación */
       #mobile-nav {
-        display: flex; gap: 6px; align-items: center;
-        padding: 8px 10px; flex-shrink: 0;
-        background: #0d1117; border-bottom: 1px solid #30363d;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 8px 10px;
+        flex-shrink: 0;
+        background: #0d1117;
+        border-bottom: 1px solid #30363d;
       }
       #mob-cat-sel {
         flex: 0 0 auto;
-        background: #161b22; border: 1px solid #30363d; border-radius: 6px;
-        color: #f0f6fc; font-size: .78rem; padding: 6px 8px;
-        cursor: pointer; outline: none;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        color: #f0f6fc;
+        font-size: .8rem;
+        padding: 7px 8px;
+        cursor: pointer;
+        outline: none;
+        max-width: 44%;
       }
       #mob-search-inp {
-        flex: 1; background: #161b22; border: 1px solid #30363d; border-radius: 6px;
-        color: #f0f6fc; font-size: .78rem; padding: 6px 10px;
-        outline: none; font-family: inherit;
+        flex: 1;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        color: #f0f6fc;
+        font-size: .8rem;
+        padding: 7px 10px;
+        outline: none;
+        font-family: inherit;
+        min-width: 0;
       }
       #mob-search-inp::placeholder { color: #484f58; }
-      /* Lista de puntos ocupa el espacio restante */
-      #point-list { flex: 1; overflow-y: auto; }
-      #map { flex: 1; min-height: 0; }
-      .maplibregl-popup-content { max-width: 92vw !important; max-height: 55vh !important; }
-      #legend { display: none; }
+
+      /* Lista de puntos scrollable */
+      #point-list { flex: 1; overflow-y: auto; min-height: 0; }
+
+      /* Popup y overlays */
+      .maplibregl-popup-content { max-width: 92vw !important; max-height: 50vh !important; }
+      #legend    { display: none; }
       #info-panel { display: none; }
     }
 
