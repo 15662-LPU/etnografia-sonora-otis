@@ -170,7 +170,7 @@
 
     /* FAB */
     #fab-add { position: absolute; bottom: 80px; right: 12px; width: 44px; height: 44px; border-radius: 50%; background: #1f6feb; border: none; color: #fff; font-size: 22px; cursor: pointer; z-index: 5; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px #0008; transition: transform .2s, background .2s; }
-    @media (max-width: 768px) { #fab-add { display: none; } #fab-hint { display: none !important; } }
+    @media (max-width: 768px) { #fab-hint { display: none !important; } }
     #fab-add:hover { transform: scale(1.1); background: #388bfd; }
     #fab-add.active { background: #da3633; transform: rotate(45deg); }
     #fab-hint { position: absolute; bottom: 132px; right: 62px; background: #161b22cc; backdrop-filter: blur(8px); border: 1px solid #30363d; border-radius: 6px; padding: 6px 10px; font-size: .72rem; color: #f0f6fc; white-space: nowrap; display: none; z-index: 5; }
@@ -2281,7 +2281,8 @@ function initPcMarker() {
   window._pcMarker = new maplibregl.Marker({ element: pcEl, anchor: 'center' })
     .setLngLat(p28.coords)
     .addTo(map);
-  pcEl.addEventListener('click', function() { flyToPoint(p28); });
+  pcEl.addEventListener('click',    function(e) { flyToPoint(p28); });
+  pcEl.addEventListener('touchend',  function(e) { e.preventDefault(); flyToPoint(p28); });
 }
 
 map.on('load', function() {
