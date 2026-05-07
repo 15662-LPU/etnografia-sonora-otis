@@ -225,15 +225,48 @@
     .btn-cancel:hover { background: #30363d; }
     .form-hint { color: #484f58; font-size: .68rem; margin-top: 4px; display: block; }
 
+    /* Mobile nav — oculto en escritorio */
+    #mobile-nav { display: none; }
+
     @media (max-width: 768px) {
       body { flex-direction: column; }
       #sidebar {
         width: 100%; min-width: 0;
-        max-height: 44vh;
+        max-height: 40vh;
         border-right: none;
-        border-top: 1px solid #30363d;
-        overflow-y: auto;
+        border-bottom: 1px solid #30363d;
+        overflow: hidden;
+        display: flex; flex-direction: column;
+        order: -1;
       }
+      /* Ocultar elementos pesados del sidebar en móvil */
+      #sidebar-header { display: none; }
+      #filters { display: none; }
+      #search-wrap { display: none; }
+      #timeline-wrap { display: none; }
+      #stats-toggle { display: none; }
+      #stats-panel { display: none; }
+      #sidebar-footer { display: none; }
+      /* Mostrar barra compacta de navegación */
+      #mobile-nav {
+        display: flex; gap: 6px; align-items: center;
+        padding: 8px 10px; flex-shrink: 0;
+        background: #0d1117; border-bottom: 1px solid #30363d;
+      }
+      #mob-cat-sel {
+        flex: 0 0 auto;
+        background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+        color: #f0f6fc; font-size: .78rem; padding: 6px 8px;
+        cursor: pointer; outline: none;
+      }
+      #mob-search-inp {
+        flex: 1; background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+        color: #f0f6fc; font-size: .78rem; padding: 6px 10px;
+        outline: none; font-family: inherit;
+      }
+      #mob-search-inp::placeholder { color: #484f58; }
+      /* Lista de puntos ocupa el espacio restante */
+      #point-list { flex: 1; overflow-y: auto; }
       #map { flex: 1; min-height: 0; }
       .maplibregl-popup-content { max-width: 92vw !important; max-height: 55vh !important; }
       #legend { display: none; }
@@ -499,6 +532,13 @@
 
 <!-- SIDEBAR -->
 <aside id="sidebar">
+  <!-- MOBILE NAV: solo visible en móvil -->
+  <div id="mobile-nav">
+    <select id="mob-cat-sel" aria-label="Filtrar por categoría">
+      <option value="all">Todas las categorías</option>
+    </select>
+    <input id="mob-search-inp" type="text" placeholder="Buscar..." autocomplete="off" />
+  </div>
   <div id="sidebar-header">
     <h1>Diarios Reflexivos Otis</h1>
     <p>Cobertura sonora del Huracan Otis (oct. 2023). Cada punto marca el origen del podcast, radio o artista. Haz clic para escuchar.</p>
@@ -571,7 +611,7 @@
       <span class="ip-cat" style="border-color:#ffa65755;color:#ffa657">Trabajo</span>
     </div>
   </div>
-  <button id="fab-add" title="Agregar punto sonoro">&#＋;</button>
+  <button id="fab-add" title="Agregar punto sonoro">+</button>
   <div id="fab-hint">Haz clic en el mapa para colocar el punto</div>
   <div id="legend">
     <h4>Categorias</h4>
@@ -1814,6 +1854,40 @@ searchClear.addEventListener('click', function() {
   searchClear.style.display = 'none';
   applyFilter();
 });
+
+/* =================================================================
+   MOBILE NAV — select de categoría + búsqueda
+================================================================= */
+(function () {
+  var mobSel = document.getElementById('mob-cat-sel');
+  var mobInp = document.getElementById('mob-search-inp');
+
+  /* Poblar opciones de categoría */
+  Object.keys(CATEGORIES).forEach(function (key) {
+    var opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = CATEGORIES[key].label;
+    mobSel.appendChild(opt);
+  });
+
+  mobSel.addEventListener('change', function () {
+    activeCategory = this.value;
+    applyFilter();
+    if (activeCategory === 'all') {
+      var pts = getFilteredPoints();
+      if (pts.length) {
+        var bounds = new maplibregl.LngLatBounds(pts[0].coords, pts[0].coords);
+        pts.forEach(function (p) { bounds.extend(p.coords); });
+        map.fitBounds(bounds, { padding: 60, maxZoom: 10, duration: 1200 });
+      }
+    }
+  });
+
+  mobInp.addEventListener('input', function () {
+    searchQuery = this.value.trim();
+    applyFilter();
+  });
+})();
 
 /* =================================================================
    LISTA EN SIDEBAR
