@@ -92,8 +92,11 @@
     .tl-dot.active .tl-dot-label { color: var(--dot-color, #58a6ff); font-weight: 700; }
     .tl-dot-count { position: absolute; bottom: 10px; transform: translateX(-50%); font-size: .58rem; color: #30363d; white-space: nowrap; }
     .tl-dot.active .tl-dot-count { color: #8b949e; }
-    #timeline-all { display: block; width: 100%; margin-top: 4px; text-align: center; font-size: .68rem; color: #484f58; background: none; border: none; cursor: pointer; font-family: inherit; transition: color .15s; padding: 2px 0; }
-    #timeline-all:hover, #timeline-all.active { color: #58a6ff; font-weight: 700; }
+    #timeline-all { display: block; width: 100%; margin-top: 8px; text-align: center; font-size: .7rem; color: #484f58; background: none; border: 1px solid transparent; border-radius: 20px; cursor: pointer; font-family: inherit; transition: all .2s; padding: 3px 10px; }
+    #timeline-all:hover { color: #8b949e; border-color: #30363d; }
+    #timeline-all.active { color: #58a6ff; font-weight: 700; }
+    #timeline-all.period-active { color: #f0f6fc; background: #21262d; border-color: #58a6ff66; font-weight: 600; }
+    #timeline-all.period-active:hover { background: #30363d; }
 
     /* Panel de estadísticas */
     #stats-panel { border-bottom: 1px solid #30363d; overflow: hidden; transition: max-height .3s ease; max-height: 0; }
@@ -504,7 +507,7 @@
   <div id="timeline-wrap">
     <div id="timeline-label">&#128197; Filtrar por período</div>
     <div id="timeline-track"><div id="timeline-fill"></div></div>
-    <button id="timeline-all" class="active">Mostrar todos los períodos</button>
+    <button id="timeline-all" class="active">↺ Todos los períodos</button>
   </div>
   <!-- Panel de estadísticas colapsable -->
   <button id="stats-toggle">📊 Estadísticas del corpus <span class="st-arrow">▾</span></button>
@@ -1624,13 +1627,20 @@ function buildTimeline() {
       if (isActive) {
         /* segundo clic = deseleccionar → todos */
         activePeriod = 'all';
-        document.getElementById('timeline-all').classList.add('active');
+        var taBtn = document.getElementById('timeline-all');
+        taBtn.classList.add('active');
+        taBtn.classList.remove('period-active');
+        taBtn.textContent = '↺ Todos los períodos';
         fill.style.left = '0%'; fill.style.right = '0%';
       } else {
         dot.classList.add('active');
         activePeriod = period.key;
         fill.style.left = '0%';
         fill.style.right = (100 - pct) + '%';
+        var taBtn = document.getElementById('timeline-all');
+        taBtn.classList.remove('active');
+        taBtn.classList.add('period-active');
+        taBtn.textContent = '× Ver todos los períodos';
       }
       applyFilter();
     });
@@ -1643,6 +1653,8 @@ function buildTimeline() {
     activePeriod = 'all';
     track.querySelectorAll('.tl-dot').forEach(function(d) { d.classList.remove('active'); });
     this.classList.add('active');
+    this.classList.remove('period-active');
+    this.textContent = '↺ Todos los períodos';
     fill.style.left = '0%'; fill.style.right = '0%';
     applyFilter();
   });
@@ -1741,6 +1753,19 @@ filtersEl.addEventListener('click', function(e) {
   activeCategory = btn.dataset.cat;
   document.querySelectorAll('.filter-btn[data-cat]').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
+  /* Al volver a "Todos", resetear también importancia y período */
+  if (activeCategory === 'all') {
+    activeImportance = 'all';
+    activePeriod = 'all';
+    document.getElementById('importance-toggle').classList.remove('active');
+    var taBtn = document.getElementById('timeline-all');
+    taBtn.classList.add('active');
+    taBtn.classList.remove('period-active');
+    taBtn.textContent = '↺ Todos los períodos';
+    document.getElementById('timeline-fill').style.left = '0%';
+    document.getElementById('timeline-fill').style.right = '0%';
+    document.getElementById('timeline-track').querySelectorAll('.tl-dot').forEach(function(d) { d.classList.remove('active'); });
+  }
   applyFilter();
   if (activeCategory === 'all') {
     var pts = getFilteredPoints();
