@@ -1,0 +1,78 @@
+[
+  {
+    "id": "pending-example-001",
+    "status": "pending",
+    "capture_mode": "public_prototype",
+    "created_at": "2026-06-09T00:00:00.000Z",
+    "updated_at": "2026-06-09T00:00:00.000Z",
+    "person": {
+      "public_name_or_alias": "Anónimo"
+    },
+    "places": {
+      "recorded_at": {
+        "label": "Comunidad ejemplo, Municipio ejemplo",
+        "coords": [
+          -99.900000,
+          16.850000
+        ],
+        "coordinate_type": "approximate",
+        "confidence": "user_submitted",
+        "notes": null
+      },
+      "story_about": [
+        {
+          "label": "Comunidad ejemplo, Municipio ejemplo",
+          "coords": [
+            -99.900000,
+            16.850000
+          ],
+          "coordinate_type": "approximate",
+          "confidence": "user_submitted",
+          "notes": null
+        }
+      ],
+      "published_or_produced_at": null
+    },
+    "testimony": {
+      "title": null,
+      "description": "Relato pendiente de revisión sobre afectaciones posteriores al Huracán Otis.",
+      "community": "Comunidad ejemplo",
+      "municipality": "Municipio ejemplo",
+      "sensitivity": "medium",
+      "visibility": "restricted",
+      "consent_status": "explicit_limited",
+      "review_status": "pending",
+      "contains_personal_data": null,
+      "contains_sensitive_location": false,
+      "ethical_notes": null,
+      "curatorial_notes": null
+    },
+    "consent": {
+      "archive_pending_review": true,
+      "understands_not_auto_published": true,
+      "may_request_more_information": true,
+      "may_consider_publication_after_review": true,
+      "method": "web_form_checkbox",
+      "recorded_at": "2026-06-09T00:00:00.000Z"
+    },
+    "audio": {
+      "type": "community",
+      "platform": "user_upload",
+      "local_file": null,
+      "url": null,
+      "duration_original": null,
+      "duration_seconds": null,
+      "language": null,
+      "transcript": null,
+      "transcript_status": "none",
+      "file_name": "testimonio-ejemplo.mp3",
+      "mime_type": "audio/mpeg",
+      "size_bytes": 1234567
+    },
+    "review": {
+      "queue": "submissions_pending",
+      "publication_allowed_without_review": false,
+      "reviewer_notes": null
+    }
+  }
+]

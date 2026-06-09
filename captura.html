@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Captura de testimonios | Punto Cero Acapulco</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+    }
+    header {
+      padding: 18px 20px;
+      border-bottom: 1px solid #30363d;
+      background: #161b22;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: .04em;
+    }
+    header a {
+      color: #58a6ff;
+      text-decoration: none;
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    main {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+      gap: 20px;
+    }
+    section {
+      border: 1px solid #30363d;
+      background: #161b22;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .section-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: .95rem;
+    }
+    .status-pill {
+      border: 1px solid #f0c00066;
+      background: #f0c00018;
+      color: #f2cc60;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      white-space: nowrap;
+    }
+    form {
+      padding: 16px;
+      display: grid;
+      gap: 16px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    label {
+      display: block;
+      color: #8b949e;
+      font-size: .76rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      color: #f0f6fc;
+      border-radius: 6px;
+      padding: 10px;
+      font: inherit;
+      outline: none;
+    }
+    textarea { min-height: 118px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: #58a6ff; }
+    input[type="file"] { padding: 8px; }
+    .hint {
+      margin-top: 5px;
+      color: #6e7681;
+      font-size: .72rem;
+      line-height: 1.45;
+    }
+    .file-status {
+      margin-top: 6px;
+      color: #8b949e;
+      font-size: .74rem;
+      line-height: 1.45;
+    }
+    .file-status.ok { color: #3fb950; }
+    .file-status.err { color: #ff7b72; }
+    .notice {
+      padding: 12px 14px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: .8rem;
+      line-height: 1.5;
+    }
+    .consent-list {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #0d1117;
+    }
+    .check-row {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 8px;
+      align-items: start;
+      color: #c9d1d9;
+      font-size: .82rem;
+      line-height: 1.4;
+    }
+    .check-row input { width: auto; margin-top: 2px; }
+    .coords-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    button {
+      border: 1px solid #30363d;
+      background: #21262d;
+      color: #f0f6fc;
+      border-radius: 6px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      transition: background .15s, border-color .15s;
+    }
+    button:hover { background: #30363d; }
+    .primary {
+      background: #1f6feb;
+      border-color: #1f6feb;
+    }
+    .primary:hover { background: #388bfd; }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      border-top: 1px solid #30363d;
+      padding-top: 16px;
+    }
+    .preview {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 12px;
+      min-height: 360px;
+      max-height: 640px;
+      overflow: auto;
+      color: #c9d1d9;
+      font-size: .76rem;
+      line-height: 1.45;
+    }
+    .message {
+      min-height: 22px;
+      color: #8b949e;
+      font-size: .8rem;
+    }
+    .message.ok { color: #3fb950; }
+    .message.err { color: #ff7b72; }
+    @media (max-width: 860px) {
+      main { grid-template-columns: 1fr; }
+      .grid-2, .grid-3, .coords-row { grid-template-columns: 1fr; }
+      .actions { justify-content: stretch; }
+      .actions button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Punto Cero Acapulco · Captura de testimonios</h1>
+    <a href="index.html">Volver al mapa</a>
+  </header>
+
+  <main>
+    <section>
+      <div class="section-head">
+        <h2>Registro pendiente</h2>
+        <span class="status-pill">Prototipo local</span>
+      </div>
+
+      <form id="capture-form">
+        <div class="notice">
+          Este prototipo no guarda información en servidor. Al finalizar, descarga un archivo JSON para revisión ética y curatorial.
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label for="alias">Nombre o seudónimo</label>
+            <input id="alias" name="alias" autocomplete="name" placeholder="Ej. Anónimo, Doña L., Colectivo..." required />
+          </div>
+          <div>
+            <label for="audio-file">Archivo de audio</label>
+            <input id="audio-file" name="audio-file" type="file" accept=".mp3,.m4a,.wav,.ogg,audio/mpeg,audio/mp4,audio/wav,audio/ogg" required />
+            <div id="audio-file-status" class="file-status">Formatos permitidos: mp3, m4a, wav, ogg. Máximo: 100 MB.</div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div>
+            <label for="community">Comunidad</label>
+            <input id="community" name="community" placeholder="Ej. Barra Vieja, Renacimiento, comunidad rural..." required />
+          </div>
+          <div>
+            <label for="municipality">Municipio</label>
+            <input id="municipality" name="municipality" placeholder="Ej. Acapulco de Juárez, Coyuca de Benítez..." required />
+          </div>
+          <div>
+            <label for="locality">Localidad</label>
+            <input id="locality" name="locality" placeholder="Ej. colonia, ejido, playa, barrio..." required />
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div>
+            <label for="interview-date">Fecha de entrevista</label>
+            <input id="interview-date" name="interview-date" type="date" required />
+          </div>
+          <div>
+            <label for="interviewer">Nombre del entrevistador</label>
+            <input id="interviewer" name="interviewer" placeholder="Nombre o equipo responsable" required />
+          </div>
+          <div>
+            <label for="testimony-type">Tipo de testimonio</label>
+            <select id="testimony-type" name="testimony-type" required>
+              <option value="comunitario">Comunitario</option>
+              <option value="familiar">Familiar</option>
+              <option value="productor_rural">Productor rural</option>
+              <option value="pescador">Pescador</option>
+              <option value="comerciante">Comerciante</option>
+              <option value="estudiante">Estudiante</option>
+              <option value="servidor_publico">Servidor público</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="description">Descripción del testimonio</label>
+          <textarea id="description" name="description" placeholder="Describe brevemente de qué habla el audio, cuándo ocurrió y qué lugar o experiencia recuerda." required></textarea>
+        </div>
+
+        <div>
+          <label>Coordenadas</label>
+          <div class="coords-row">
+            <div>
+              <input id="latitude" name="latitude" inputmode="decimal" placeholder="Latitud" />
+            </div>
+            <div>
+              <input id="longitude" name="longitude" inputmode="decimal" placeholder="Longitud" />
+            </div>
+            <button type="button" id="gps-button">Capturar GPS</button>
+          </div>
+          <div class="hint">El GPS es opcional. La ubicación pública debe revisarse antes de publicarse.</div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label for="coordinate-type">Tipo de coordenada pública sugerida</label>
+            <select id="coordinate-type" name="coordinate-type" required>
+              <option value="approximate">Aproximada</option>
+              <option value="exact">Exacta</option>
+              <option value="symbolic">Simbólica</option>
+              <option value="sensitive_displaced">Sensible/desplazada</option>
+              <option value="unknown">No definida</option>
+            </select>
+          </div>
+          <div>
+            <label for="sensitivity">Sensibilidad preliminar</label>
+            <select id="sensitivity" name="sensitivity" required>
+              <option value="medium">Media</option>
+              <option value="low">Baja</option>
+              <option value="high">Alta</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label>Consentimiento informado</label>
+          <div class="consent-list">
+            <label class="check-row">
+              <input type="checkbox" id="consent-archive" required />
+              <span>Autorizo que el audio se conserve como registro pendiente para revisión del equipo.</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" id="consent-review" required />
+              <span>Entiendo que el testimonio no se publicará automáticamente en el mapa.</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" id="consent-contact" />
+              <span>El equipo puede solicitar más información antes de decidir si se publica.</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" id="consent-public" />
+              <span>Autorizo considerar el testimonio para publicación pública después de revisión.</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="preview-button">Vista previa JSON</button>
+          <button type="submit" class="primary">Descargar pendiente</button>
+        </div>
+        <div id="message" class="message" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>JSON generado</h2>
+        <span class="status-pill">No publicado</span>
+      </div>
+      <div class="preview">
+        <pre id="json-preview">{}</pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    var form = document.getElementById('capture-form');
+    var previewButton = document.getElementById('preview-button');
+    var gpsButton = document.getElementById('gps-button');
+    var preview = document.getElementById('json-preview');
+    var message = document.getElementById('message');
+    var audioInput = document.getElementById('audio-file');
+    var audioFileStatus = document.getElementById('audio-file-status');
+    var MAX_AUDIO_BYTES = 100 * 1024 * 1024;
+    var ALLOWED_AUDIO_EXTENSIONS = ['mp3', 'm4a', 'wav', 'ogg'];
+    var ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/ogg'];
+
+    function setMessage(text, type) {
+      message.textContent = text || '';
+      message.className = 'message' + (type ? ' ' + type : '');
+    }
+
+    function value(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function checked(id) {
+      return document.getElementById(id).checked;
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes && bytes !== 0) return '0 B';
+      var units = ['B', 'KB', 'MB', 'GB'];
+      var size = bytes;
+      var unit = 0;
+      while (size >= 1024 && unit < units.length - 1) {
+        size = size / 1024;
+        unit++;
+      }
+      return size.toFixed(unit === 0 ? 0 : 1) + ' ' + units[unit];
+    }
+
+    function getAudioExtension(file) {
+      if (!file || !file.name || file.name.indexOf('.') === -1) return '';
+      return file.name.split('.').pop().toLowerCase();
+    }
+
+    function validateAudioFile() {
+      var file = audioInput.files && audioInput.files[0] ? audioInput.files[0] : null;
+      var result = {
+        valid: false,
+        error: null,
+        allowed_extensions: ALLOWED_AUDIO_EXTENSIONS,
+        max_size_bytes: MAX_AUDIO_BYTES
+      };
+
+      if (!file) {
+        audioInput.setCustomValidity('');
+        audioFileStatus.textContent = 'Formatos permitidos: mp3, m4a, wav, ogg. Máximo: 100 MB.';
+        audioFileStatus.className = 'file-status';
+        return result;
+      }
+
+      var extension = getAudioExtension(file);
+      var extensionAllowed = ALLOWED_AUDIO_EXTENSIONS.indexOf(extension) !== -1;
+      var typeAllowed = !file.type || file.type.indexOf('audio/') === 0 || file.type === 'application/ogg' || ALLOWED_AUDIO_TYPES.indexOf(file.type) !== -1;
+      var sizeAllowed = file.size <= MAX_AUDIO_BYTES;
+
+      result.extension = extension || null;
+      result.mime_type = file.type || null;
+      result.size_bytes = file.size;
+      result.valid = extensionAllowed && typeAllowed && sizeAllowed;
+
+      if (!extensionAllowed) {
+        result.error = 'Formato no permitido. Usa mp3, m4a, wav u ogg.';
+      } else if (!typeAllowed) {
+        result.error = 'El tipo MIME del archivo no coincide con los formatos permitidos.';
+      } else if (!sizeAllowed) {
+        result.error = 'El archivo supera el máximo de 100 MB.';
+      }
+
+      audioInput.setCustomValidity(result.error || '');
+      if (result.valid) {
+        audioFileStatus.textContent = file.name + ' · ' + formatBytes(file.size);
+        audioFileStatus.className = 'file-status ok';
+      } else {
+        audioFileStatus.textContent = result.error + ' Archivo: ' + file.name + ' · ' + formatBytes(file.size);
+        audioFileStatus.className = 'file-status err';
+      }
+
+      return result;
+    }
+
+    function audioMeta() {
+      var file = audioInput.files && audioInput.files[0] ? audioInput.files[0] : null;
+      var validation = validateAudioFile();
+      if (!file) {
+        return {
+          file_name: null,
+          mime_type: null,
+          size_bytes: null,
+          extension: null,
+          validation: validation
+        };
+      }
+      return {
+        file_name: file.name,
+        mime_type: file.type || null,
+        size_bytes: file.size,
+        extension: getAudioExtension(file) || null,
+        validation: validation
+      };
+    }
+
+    function numberOrNull(raw) {
+      if (!raw) return null;
+      var n = Number(raw.replace(',', '.'));
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function buildSubmission() {
+      var lat = numberOrNull(value('latitude'));
+      var lng = numberOrNull(value('longitude'));
+      var coords = lat !== null && lng !== null ? [lng, lat] : null;
+      var now = new Date().toISOString();
+      var locationLabel = [value('community'), value('locality'), value('municipality')].filter(Boolean).join(', ');
+
+      return {
+        schema_version: 'submissions_pending.v2',
+        record_type: 'field_testimony_submission',
+        id: 'pending-' + Date.now(),
+        status: 'pending',
+        capture_mode: 'researcher_static_prototype',
+        created_at: now,
+        updated_at: now,
+        capture: {
+          interview_date: value('interview-date') || null,
+          interviewer: value('interviewer') || null,
+          source_page: 'captura.html',
+          storage_mode: 'json_download',
+          server_saved: false
+        },
+        person: {
+          public_name_or_alias: value('alias') || null
+        },
+        places: {
+          recorded_at: coords ? {
+            label: locationLabel || null,
+            coords: coords,
+            coordinate_type: value('coordinate-type') || 'approximate',
+            confidence: 'user_submitted',
+            notes: null
+          } : null,
+          story_about: [{
+            label: locationLabel || null,
+            coords: coords,
+            coordinate_type: value('coordinate-type') || 'approximate',
+            confidence: coords ? 'user_submitted' : null,
+            notes: null
+          }],
+          published_or_produced_at: null
+        },
+        testimony: {
+          title: null,
+          description: value('description') || null,
+          testimony_type: value('testimony-type') || null,
+          community: value('community') || null,
+          locality: value('locality') || null,
+          municipality: value('municipality') || null,
+          interview_date: value('interview-date') || null,
+          interviewer: value('interviewer') || null,
+          sensitivity: value('sensitivity') || 'medium',
+          visibility: 'restricted',
+          consent_status: checked('consent-public') ? 'explicit_limited' : 'pending',
+          review_status: 'pending',
+          contains_personal_data: null,
+          contains_sensitive_location: value('coordinate-type') === 'sensitive_displaced',
+          ethical_notes: null,
+          curatorial_notes: null
+        },
+        consent: {
+          archive_pending_review: checked('consent-archive'),
+          understands_not_auto_published: checked('consent-review'),
+          may_request_more_information: checked('consent-contact'),
+          may_consider_publication_after_review: checked('consent-public'),
+          method: 'web_form_checkbox',
+          recorded_at: now
+        },
+        audio: Object.assign({
+          type: 'community',
+          platform: 'user_upload',
+          local_file: null,
+          url: null,
+          duration_original: null,
+          duration_seconds: null,
+          language: null,
+          transcript: null,
+          transcript_status: 'none'
+        }, audioMeta()),
+        review: {
+          queue: 'submissions_pending',
+          publication_allowed_without_review: false,
+          reviewer_notes: null
+        }
+      };
+    }
+
+    function updatePreview() {
+      var submission = buildSubmission();
+      preview.textContent = JSON.stringify(submission, null, 2);
+      return submission;
+    }
+
+    function downloadJson(submission) {
+      var blob = new Blob([JSON.stringify(submission, null, 2) + '\n'], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = submission.id + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    gpsButton.addEventListener('click', function () {
+      if (!navigator.geolocation) {
+        setMessage('El navegador no permite geolocalización.', 'err');
+        return;
+      }
+      setMessage('Solicitando ubicación...', '');
+      navigator.geolocation.getCurrentPosition(function (position) {
+        document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
+        document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+        setMessage('Coordenadas capturadas. Revisa si deben publicarse exactas o aproximadas.', 'ok');
+        updatePreview();
+      }, function () {
+        setMessage('No se pudo capturar GPS. Puedes escribir comunidad y municipio manualmente.', 'err');
+      }, {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0
+      });
+    });
+
+    previewButton.addEventListener('click', function () {
+      validateAudioFile();
+      updatePreview();
+      setMessage('Vista previa actualizada.', 'ok');
+    });
+
+    audioInput.addEventListener('change', function () {
+      var validation = validateAudioFile();
+      updatePreview();
+      if (validation.error) {
+        setMessage(validation.error, 'err');
+      } else if (audioInput.files && audioInput.files[0]) {
+        setMessage('Archivo de audio listo para exportar como pendiente.', 'ok');
+      }
+    });
+
+    form.addEventListener('input', function () {
+      updatePreview();
+    });
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var validation = validateAudioFile();
+      if (!form.reportValidity()) return;
+      if (validation.error) {
+        setMessage(validation.error, 'err');
+        return;
+      }
+      var submission = updatePreview();
+      downloadJson(submission);
+      setMessage('Registro pendiente descargado como JSON. No fue publicado en el mapa.', 'ok');
+    });
+
+    updatePreview();
+  </script>
+</body>
+</html>
