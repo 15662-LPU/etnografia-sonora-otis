@@ -224,12 +224,12 @@
     <section>
       <div class="section-head">
         <h2>Registro pendiente</h2>
-        <span class="status-pill">Prototipo local</span>
+        <span class="status-pill">Pendiente de revisión</span>
       </div>
 
       <form id="capture-form">
         <div class="notice">
-          Este prototipo no guarda información en servidor. Al finalizar, descarga un archivo JSON para revisión ética y curatorial.
+          Este formulario envía el audio y los metadatos a una cola privada de revisión ética y curatorial. Nada se publica automáticamente en el mapa.
         </div>
 
         <div class="grid-2">
@@ -347,7 +347,8 @@
 
         <div class="actions">
           <button type="button" id="preview-button">Vista previa JSON</button>
-          <button type="submit" class="primary">Descargar pendiente</button>
+          <button type="button" id="download-button">Descargar registro para subir después</button>
+          <button type="submit" class="primary">Enviar para revisión</button>
         </div>
         <div id="message" class="message" aria-live="polite"></div>
       </form>
@@ -367,14 +368,19 @@
   <script>
     var form = document.getElementById('capture-form');
     var previewButton = document.getElementById('preview-button');
+    var downloadButton = document.getElementById('download-button');
     var gpsButton = document.getElementById('gps-button');
     var preview = document.getElementById('json-preview');
     var message = document.getElementById('message');
     var audioInput = document.getElementById('audio-file');
     var audioFileStatus = document.getElementById('audio-file-status');
+    var SUPABASE_URL = 'https://zopzhhqzuslyafznwhnc.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvcHpoaHF6dXNseWFmem53aG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzA2NTQsImV4cCI6MjA5NjYwNjY1NH0.KW9A72h4QI7sdkiUqz_jYqElmD_npt5PGctLczHM2D0';
+    var SUPABASE_BUCKET = 'testimonios-audio';
     var MAX_AUDIO_BYTES = 100 * 1024 * 1024;
     var ALLOWED_AUDIO_EXTENSIONS = ['mp3', 'm4a', 'wav', 'ogg'];
     var ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/ogg'];
+    var currentSubmissionId = createUuid();
 
     function setMessage(text, type) {
       message.textContent = text || '';
@@ -387,6 +393,22 @@
 
     function checked(id) {
       return document.getElementById(id).checked;
+    }
+
+    function createUuid() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, function (c) {
+        return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
+      });
+    }
+
+    function safeFileName(name) {
+      return String(name || 'audio')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 120) || 'audio';
     }
 
     function formatBytes(bytes) {
@@ -479,6 +501,67 @@
       return Number.isFinite(n) ? n : null;
     }
 
+    function getAudioFile() {
+      return audioInput.files && audioInput.files[0] ? audioInput.files[0] : null;
+    }
+
+    function buildAudioPath(submissionId, file) {
+      var extension = getAudioExtension(file) || 'audio';
+      var basename = safeFileName(file && file.name ? file.name : 'testimonio.' + extension);
+      return 'pending/' + submissionId + '/' + Date.now() + '-' + basename;
+    }
+
+    function buildDatabasePayload(submission, audioPath) {
+      var lat = numberOrNull(value('latitude'));
+      var lng = numberOrNull(value('longitude'));
+      return {
+        id: submission.id,
+        status: 'pending',
+        capture_mode: 'public_web',
+        source_page: 'captura.html',
+        public_name_or_alias: value('alias') || null,
+        contact_reference: null,
+        interviewer: value('interviewer') || null,
+        interview_date: value('interview-date') || null,
+        community: value('community') || null,
+        municipality: value('municipality') || null,
+        locality: value('locality') || null,
+        place_label: submission.places.story_about[0].label,
+        description: value('description') || null,
+        testimony_type: value('testimony-type') || null,
+        latitude: lat,
+        longitude: lng,
+        coordinate_type: value('coordinate-type') || 'approximate',
+        contains_sensitive_location: value('coordinate-type') === 'sensitive_displaced',
+        sensitivity: value('sensitivity') || 'medium',
+        audio_bucket: SUPABASE_BUCKET,
+        audio_path: audioPath,
+        audio_original_filename: submission.audio.file_name,
+        audio_mime_type: submission.audio.mime_type,
+        audio_size_bytes: submission.audio.size_bytes,
+        audio_duration_original: null,
+        audio_duration_seconds: null,
+        audio_language: null,
+        transcript_status: 'none',
+        consent_archive_pending_review: checked('consent-archive'),
+        consent_understands_not_auto_published: checked('consent-review'),
+        consent_may_request_more_information: checked('consent-contact'),
+        consent_may_consider_publication_after_review: checked('consent-public'),
+        consent_method: 'web_form_checkbox',
+        consent_recorded_at: submission.consent.recorded_at,
+        consent_notes: null,
+        ethical_review_status: 'pending',
+        ethical_notes: null,
+        reviewed_by: null,
+        reviewed_at: null,
+        curatorial_review_status: 'pending',
+        curatorial_notes: null,
+        curator: null,
+        curated_at: null,
+        admin_notes: null
+      };
+    }
+
     function buildSubmission() {
       var lat = numberOrNull(value('latitude'));
       var lng = numberOrNull(value('longitude'));
@@ -489,16 +572,16 @@
       return {
         schema_version: 'submissions_pending.v2',
         record_type: 'field_testimony_submission',
-        id: 'pending-' + Date.now(),
+        id: currentSubmissionId,
         status: 'pending',
-        capture_mode: 'researcher_static_prototype',
+        capture_mode: 'public_web',
         created_at: now,
         updated_at: now,
         capture: {
           interview_date: value('interview-date') || null,
           interviewer: value('interviewer') || null,
           source_page: 'captura.html',
-          storage_mode: 'json_download',
+          storage_mode: 'pending_supabase_or_json_download',
           server_saved: false
         },
         person: {
@@ -584,6 +667,86 @@
       URL.revokeObjectURL(url);
     }
 
+    async function uploadAudioToSupabase(submission, file) {
+      var audioPath = buildAudioPath(submission.id, file);
+      var response = await fetch(SUPABASE_URL + '/storage/v1/object/' + SUPABASE_BUCKET + '/' + audioPath, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': file.type || 'application/octet-stream',
+          'x-upsert': 'false'
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        var uploadText = await response.text();
+        throw new Error('No se pudo subir el audio: ' + uploadText);
+      }
+
+      return audioPath;
+    }
+
+    async function insertSubmissionToSupabase(payload) {
+      var response = await fetch(SUPABASE_URL + '/rest/v1/submissions', {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        var insertText = await response.text();
+        throw new Error('No se pudo guardar el registro: ' + insertText);
+      }
+    }
+
+    async function sendToSupabase() {
+      var validation = validateAudioFile();
+      if (!form.reportValidity()) return;
+      if (validation.error) {
+        setMessage(validation.error, 'err');
+        return;
+      }
+
+      var file = getAudioFile();
+      if (!file) {
+        setMessage('Selecciona un archivo de audio antes de enviar.', 'err');
+        return;
+      }
+
+      var submission = updatePreview();
+      setMessage('Subiendo audio de forma privada...', '');
+
+      try {
+        var audioPath = await uploadAudioToSupabase(submission, file);
+        var payload = buildDatabasePayload(submission, audioPath);
+        setMessage('Guardando metadatos para revisión...', '');
+        await insertSubmissionToSupabase(payload);
+
+        submission.audio.bucket = SUPABASE_BUCKET;
+        submission.audio.path = audioPath;
+        submission.capture.storage_mode = 'supabase';
+        submission.capture.server_saved = true;
+        submission.database_payload = payload;
+        preview.textContent = JSON.stringify(submission, null, 2);
+
+        setMessage('Testimonio enviado para revisión. No fue publicado automáticamente en el mapa.', 'ok');
+        currentSubmissionId = createUuid();
+      } catch (error) {
+        submission.capture.storage_mode = 'local_download_after_error';
+        submission.capture.server_saved = false;
+        submission.capture.last_error = error.message;
+        preview.textContent = JSON.stringify(submission, null, 2);
+        setMessage('No se pudo enviar a Supabase. Puedes descargar el JSON para subir después. Detalle: ' + error.message, 'err');
+      }
+    }
+
     gpsButton.addEventListener('click', function () {
       if (!navigator.geolocation) {
         setMessage('El navegador no permite geolocalización.', 'err');
@@ -610,13 +773,28 @@
       setMessage('Vista previa actualizada.', 'ok');
     });
 
+    downloadButton.addEventListener('click', function () {
+      var validation = validateAudioFile();
+      if (!form.reportValidity()) return;
+      if (validation.error) {
+        setMessage(validation.error, 'err');
+        return;
+      }
+      var submission = updatePreview();
+      submission.capture.storage_mode = 'manual_json_download';
+      submission.capture.server_saved = false;
+      preview.textContent = JSON.stringify(submission, null, 2);
+      downloadJson(submission);
+      setMessage('Registro pendiente descargado como JSON para subir después. No fue publicado en el mapa.', 'ok');
+    });
+
     audioInput.addEventListener('change', function () {
       var validation = validateAudioFile();
       updatePreview();
       if (validation.error) {
         setMessage(validation.error, 'err');
       } else if (audioInput.files && audioInput.files[0]) {
-        setMessage('Archivo de audio listo para exportar como pendiente.', 'ok');
+        setMessage('Archivo de audio listo para enviar o descargar como pendiente.', 'ok');
       }
     });
 
@@ -626,15 +804,7 @@
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
-      var validation = validateAudioFile();
-      if (!form.reportValidity()) return;
-      if (validation.error) {
-        setMessage(validation.error, 'err');
-        return;
-      }
-      var submission = updatePreview();
-      downloadJson(submission);
-      setMessage('Registro pendiente descargado como JSON. No fue publicado en el mapa.', 'ok');
+      sendToSupabase();
     });
 
     updatePreview();
