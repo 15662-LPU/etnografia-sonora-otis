@@ -63,6 +63,9 @@
     .point-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cat-color); flex-shrink: 0; margin-top: 4px; box-shadow: 0 0 6px var(--cat-color); }
     .point-item h3 { font-size: .85rem; font-weight: 600; color: #f0f6fc; line-height: 1.3; }
     .point-item span { font-size: .72rem; color: #8b949e; }
+    .point-body { min-width: 0; flex: 1; }
+    .point-meta { display: block; }
+    .point-tap, .point-action { display: none; }
 
     /* Tooltip de hover en puntos del mapa */
     #map-tooltip {
@@ -283,25 +286,27 @@
 
     /* Mobile nav — oculto en escritorio */
     #mobile-nav { display: none; }
+    #mobile-story-guide { display: none; }
+    #mobile-bottom-nav { display: none; }
 
     @media (max-width: 768px) {
       body { flex-direction: column; }
 
-      /* MAPA — va primero y ocupa la mayor parte de la pantalla */
+      /* UX móvil: el mapa orienta; las historias sonoras toman protagonismo. */
       #map {
         order: -1;
-        flex: 0 0 58vh;
+        flex: 0 0 42vh;
         min-height: 0;
         border-bottom: 1px solid #30363d;
       }
 
-      /* SIDEBAR — franja inferior con controles y lista */
+      /* SIDEBAR — franja inferior centrada en historias escuchables */
       #sidebar {
         width: 100%;
         min-width: 0;
-        flex: 1;
+        flex: 0 0 58vh;
         min-height: 0;
-        max-height: 42vh;
+        max-height: 58vh;
         border-right: none;
         overflow: hidden;
         display: flex;
@@ -322,7 +327,7 @@
         display: flex;
         gap: 6px;
         align-items: center;
-        padding: 8px 10px;
+        padding: 7px 10px;
         flex-shrink: 0;
         background: #0d1117;
         border-bottom: 1px solid #30363d;
@@ -334,10 +339,10 @@
         border-radius: 6px;
         color: #f0f6fc;
         font-size: .8rem;
-        padding: 7px 8px;
+        padding: 6px 8px;
         cursor: pointer;
         outline: none;
-        max-width: 44%;
+        max-width: 42%;
       }
       #mob-search-inp {
         flex: 1;
@@ -346,20 +351,235 @@
         border-radius: 6px;
         color: #f0f6fc;
         font-size: .8rem;
-        padding: 7px 10px;
+        padding: 6px 10px;
         outline: none;
         font-family: inherit;
         min-width: 0;
       }
       #mob-search-inp::placeholder { color: #484f58; }
 
+      #mobile-story-guide {
+        display: block;
+        padding: 11px 14px 10px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+      }
+      #mobile-story-guide h2 {
+        margin: 0 0 3px;
+        font-size: .98rem;
+        line-height: 1.25;
+        color: #f0f6fc;
+      }
+      #mobile-story-guide p {
+        margin: 0;
+        font-size: .76rem;
+        line-height: 1.35;
+        color: #8b949e;
+      }
+
       /* Lista de puntos scrollable */
-      #point-list { flex: 1; overflow-y: auto; min-height: 0; }
+      #point-list {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        padding: 10px 10px 70px;
+      }
+      .point-item {
+        min-height: 72px;
+        margin: 0 0 9px;
+        padding: 12px;
+        border: 1px solid #30363d;
+        border-left: 4px solid var(--cat-color);
+        border-radius: 8px;
+        background: #161b22;
+        box-shadow: 0 2px 10px #0004;
+      }
+      .point-item:active { transform: scale(.99); }
+      .point-item.active {
+        background: #21262d;
+        border-color: #484f58;
+        border-left-color: var(--cat-color);
+      }
+      .point-dot {
+        width: 12px;
+        height: 12px;
+        margin-top: 5px;
+      }
+      .point-item h3 {
+        font-size: .92rem;
+        line-height: 1.28;
+        margin-bottom: 3px;
+      }
+      .point-meta {
+        font-size: .74rem;
+        line-height: 1.35;
+      }
+      .point-tap {
+        display: block;
+        margin-top: 6px;
+        font-size: .68rem;
+        color: #58a6ff;
+        font-weight: 700;
+        letter-spacing: .03em;
+      }
+      .point-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: #1f6feb22;
+        border: 1px solid #1f6feb66;
+        color: #58a6ff;
+        font-size: .75rem;
+        font-weight: 800;
+        white-space: nowrap;
+        align-self: center;
+      }
 
       /* Popup y overlays */
       .maplibregl-popup-content { max-width: 92vw !important; max-height: 50vh !important; }
       #legend    { display: none; }
       #info-panel { display: none; }
+      #stats { display: none; }
+      .maplibregl-ctrl-top-left { display: none; }
+      #fab-add {
+        right: 10px;
+        bottom: 58px;
+        width: auto;
+        height: 36px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 0;
+        z-index: 6;
+      }
+      #fab-add::before {
+        content: 'Aportar';
+        font-size: .76rem;
+        font-weight: 800;
+      }
+      #audio-sheet {
+        max-height: 66vh;
+        border-radius: 14px 14px 0 0;
+      }
+      #audio-sheet-bar {
+        justify-content: flex-end;
+        padding: 8px 12px 6px;
+      }
+      #audio-sheet-close {
+        width: 40px;
+        min-height: 40px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 1.2rem;
+        font-weight: 800;
+      }
+      #audio-sheet-body { padding: 12px 14px 24px; }
+      .mobile-sheet-kicker {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 7px;
+        font-size: .7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+      }
+      .mobile-sheet-title {
+        margin: 0 0 5px;
+        color: #f0f6fc;
+        font-size: 1.12rem;
+        line-height: 1.22;
+      }
+      .mobile-sheet-location {
+        color: #8b949e;
+        font-size: .8rem;
+        line-height: 1.35;
+        margin-bottom: 12px;
+      }
+      .mobile-listen-primary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        background: #1f6feb;
+        color: #fff;
+        text-decoration: none;
+        font-size: .9rem;
+        font-weight: 800;
+      }
+      .mobile-listen-primary.disabled {
+        background: #21262d;
+        color: #8b949e;
+        border: 1px dashed #30363d;
+      }
+      .mobile-sheet-desc {
+        color: #c9d1d9;
+        font-size: .84rem;
+        line-height: 1.55;
+        margin: 0 0 12px;
+      }
+      .mobile-sheet-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        padding: 10px 0;
+        border-top: 1px solid #21262d;
+        border-bottom: 1px solid #21262d;
+        color: #8b949e;
+        font-size: .74rem;
+        margin-bottom: 12px;
+      }
+      .mobile-sheet-player { margin-top: 10px; }
+      .mobile-sheet-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 12px;
+      }
+      .mobile-sheet-tags span {
+        background: #21262d;
+        color: #8b949e;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: .66rem;
+      }
+      #mobile-bottom-nav {
+        position: fixed;
+        left: 10px;
+        right: 10px;
+        bottom: 8px;
+        z-index: 450;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        padding: 6px;
+        background: #0d1117ee;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        box-shadow: 0 -4px 18px #0008;
+        backdrop-filter: blur(8px);
+      }
+      #mobile-bottom-nav a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        border-radius: 8px;
+        color: #c9d1d9;
+        text-decoration: none;
+        font-size: .78rem;
+        font-weight: 800;
+      }
+      #mobile-bottom-nav a:last-child {
+        background: #1f6feb22;
+        color: #58a6ff;
+      }
     }
 
     /* =====================================================
@@ -645,6 +865,10 @@
     </select>
     <input id="mob-search-inp" type="text" placeholder="Buscar..." autocomplete="off" />
   </div>
+  <div id="mobile-story-guide">
+    <h2>Toca una historia para escucharla</h2>
+    <p>Explora testimonios sonoros del huracán Otis</p>
+  </div>
   <div id="sidebar-header">
     <h1>Diarios Reflexivos Otis</h1>
     <p>Cobertura sonora del Huracan Otis (oct. 2023). Cada punto marca el origen del podcast, radio o artista. Haz clic para escuchar.</p>
@@ -781,10 +1005,16 @@
 <!-- AUDIO SHEET (móvil) — panel fijo fuera del DOM de MapLibre -->
 <div id="audio-sheet" aria-hidden="true">
   <div id="audio-sheet-bar">
-    <button id="audio-sheet-close" aria-label="Cerrar">&#10005; Cerrar</button>
+    <button id="audio-sheet-close" aria-label="Cerrar ficha sonora">&#10005;</button>
   </div>
   <div id="audio-sheet-body"></div>
 </div>
+
+<nav id="mobile-bottom-nav" aria-label="Navegación móvil">
+  <a href="#point-list">Historias</a>
+  <a href="#map">Mapa</a>
+  <a href="captura.html">Aportar</a>
+</nav>
 
 <script>
 /* TOKEN */
@@ -2016,13 +2246,24 @@ function renderList(points) {
     var item = document.createElement('div');
     item.className = 'point-item' + (p.id === activePointId ? ' active' : '');
     item.dataset.id = p.id;
+    item.setAttribute('role', 'button');
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('aria-label', 'Escuchar ' + p.title);
     item.style.setProperty('--cat-color', cat.color);
     var badge = p.spotify ? ' <span style="color:#1db954;font-size:.65rem">[S]</span>' : '';
     item.innerHTML =
       '<div class="point-dot"></div>' +
-      '<div><h3>' + p.title + badge + '</h3>' +
-      '<span>' + cat.label + ' &middot; ' + p.location + '</span></div>';
+      '<div class="point-body"><h3>' + p.title + badge + '</h3>' +
+      '<span class="point-meta">' + cat.label + ' &middot; ' + p.location + '</span>' +
+      '<span class="point-tap">Tocar para escuchar</span></div>' +
+      '<span class="point-action" aria-hidden="true">&#9654; Escuchar</span>';
     item.addEventListener('click', function() { flyToPoint(p); });
+    item.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        flyToPoint(p);
+      }
+    });
     listEl.appendChild(item);
   });
 }
@@ -2442,7 +2683,7 @@ function flyToPoint(p) {
     /* Móvil: mostrar en panel fijo — completamente fuera del DOM de MapLibre */
     var sheet     = document.getElementById('audio-sheet');
     var sheetBody = document.getElementById('audio-sheet-body');
-    sheetBody.innerHTML = buildPopupHTML(p);
+    sheetBody.innerHTML = buildMobileSheetHTML(p);
     sheet.classList.add('open');
     sheet.setAttribute('aria-hidden', 'false');
     sheetBody.scrollTop = 0;
@@ -2599,6 +2840,68 @@ function buildPopupHTML(p) {
     '</div>' : '');
 }
 
+function buildMobileSheetHTML(p) {
+  var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
+  var srcType = getSourceType(p);
+  var mins = parseDurationMinutes(p.duration);
+  var durationLabel = mins !== null ? Math.round(mins) + ' min' : 'Duración no registrada';
+  var tags = (p.tags || []).map(function(t) {
+    return '<span>#' + t + '</span>';
+  }).join('');
+
+  var listenButton = '<div class="mobile-listen-primary disabled">Sin audio disponible</div>';
+  var player = '';
+
+  if (p.spotify) {
+    var openUrl = p.spotify.split('?')[0];
+    var embedUrl = convertToSpotifyEmbed(p.spotify);
+    var isLong = p.spotify.indexOf('/playlist/') !== -1 || p.spotify.indexOf('/show/') !== -1;
+    var h = isLong ? 232 : 152;
+    listenButton =
+      '<a class="mobile-listen-primary" href="' + openUrl + '" target="_blank" rel="noopener noreferrer">' +
+        '&#9654; Escuchar en Spotify' +
+      '</a>';
+    player =
+      '<div class="mobile-sheet-player spotify-wrap">' +
+        '<iframe src="' + embedUrl + '" height="' + h + '" ' +
+          'allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" ' +
+          'loading="lazy"></iframe>' +
+      '</div>';
+  } else if (p.audio) {
+    listenButton =
+      '<a class="mobile-listen-primary" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">' +
+        '&#9654; Abrir audio' +
+      '</a>';
+    player =
+      '<div class="mobile-sheet-player audio-wrap">' +
+        '<iframe src="' + p.audio + '" width="100%" height="180" frameborder="0" scrolling="no" allowfullscreen ' +
+          'title="Audio etnografia sonora" style="border-radius:8px;display:block;"></iframe>' +
+      '</div>';
+  }
+
+  return (
+    '<div class="mobile-sheet-kicker">' +
+      '<span style="color:' + cat.color + '">' + cat.emoji + ' ' + cat.label + '</span>' +
+      '<span style="color:' + srcType.color + '">' + srcType.icon + ' ' + srcType.label + '</span>' +
+    '</div>' +
+    '<h2 class="mobile-sheet-title">' + p.title + '</h2>' +
+    '<div class="mobile-sheet-location">' + p.location + '</div>' +
+    listenButton +
+    '<p class="mobile-sheet-desc">' + p.description + '</p>' +
+    '<div class="mobile-sheet-meta">' +
+      '<span>Fecha: ' + p.date + '</span>' +
+      '<span>Duración: ' + durationLabel + '</span>' +
+      '<span>Voz/fuente: ' + p.recorder + '</span>' +
+      '<span>Tipo: ' + srcType.label + '</span>' +
+    '</div>' +
+    player +
+    (tags ? '<div class="mobile-sheet-tags">' + tags + '</div>' : '') +
+    '<div style="margin-top:12px;display:flex;justify-content:flex-end">' +
+      '<button onclick="sharePoint(' + p.id + ')" style="background:none;border:none;color:#8b949e;font-size:.76rem;cursor:pointer;padding:0">Compartir punto</button>' +
+    '</div>'
+  );
+}
+
 /* =================================================================
    VER TODOS
 ================================================================= */
@@ -2658,6 +2961,10 @@ Object.keys(CATEGORIES).forEach(function(key) {
 });
 
 fabBtn.addEventListener('click', function() {
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    window.location.href = 'captura.html';
+    return;
+  }
   var isActive = document.body.classList.toggle('adding-mode');
   fabBtn.classList.toggle('active', isActive);
   if (!isActive && tempMarker) { tempMarker.remove(); tempMarker = null; }
