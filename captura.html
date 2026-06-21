@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Captura de testimonios | Punto Cero Acapulco</title>
+  <title>Comparte tu historia | Punto Cero Acapulco</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -35,11 +35,11 @@
       font-weight: 600;
     }
     main {
-      width: min(1120px, 100%);
+      width: min(860px, 100%);
       margin: 0 auto;
       padding: 24px 16px 40px;
       display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 20px;
     }
     section {
@@ -76,6 +76,54 @@
       padding: 16px;
       display: grid;
       gap: 16px;
+    }
+    .intro {
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+      border-bottom: 1px solid #30363d;
+      background: #0d1117;
+    }
+    .intro h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      color: #f0f6fc;
+      line-height: 1.2;
+    }
+    .intro p {
+      margin: 0;
+      color: #c9d1d9;
+      font-size: .9rem;
+      line-height: 1.5;
+    }
+    .step-block {
+      display: grid;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      border-radius: 8px;
+    }
+    .step-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #f0f6fc;
+      font-size: .96rem;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+    .step-number {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #1f6feb;
+      color: #fff;
+      font-size: .78rem;
+      flex: 0 0 auto;
     }
     .grid-2 {
       display: grid;
@@ -123,12 +171,49 @@
     .file-status.err { color: #ff7b72; }
     .notice {
       padding: 12px 14px;
-      background: #0d1117;
-      border: 1px solid #30363d;
+      background: #12331f;
+      border: 1px solid #2ea04366;
       border-radius: 6px;
-      color: #c9d1d9;
+      color: #d2f8d2;
       font-size: .8rem;
       line-height: 1.5;
+    }
+    .support-note {
+      color: #8b949e;
+      font-size: .76rem;
+      line-height: 1.45;
+      margin-top: -6px;
+    }
+    .support-panel {
+      border: 1px solid #30363d;
+      background: #0d1117;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .support-panel summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      color: #c9d1d9;
+      font-size: .84rem;
+      font-weight: 800;
+      list-style: none;
+    }
+    .support-panel summary::-webkit-details-marker { display: none; }
+    .support-panel summary::after {
+      content: '+';
+      float: right;
+      color: #8b949e;
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .support-panel[open] summary::after { content: '-'; }
+    .support-panel-body {
+      display: grid;
+      gap: 14px;
+      padding: 0 14px 14px;
+    }
+    .technical-preview, .technical-only {
+      display: none;
     }
     .consent-list {
       display: grid;
@@ -138,6 +223,23 @@
       border-radius: 6px;
       background: #0d1117;
     }
+    .ethics-note {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid #58a6ff55;
+      background: #10243a;
+      border-radius: 6px;
+      color: #dcecff;
+      font-size: .8rem;
+      line-height: 1.5;
+    }
+    .ethics-note strong { color: #f0f6fc; }
+    .ethics-note ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .ethics-note li { margin-bottom: 4px; }
     .check-row {
       display: grid;
       grid-template-columns: 20px 1fr;
@@ -209,154 +311,189 @@
     @media (max-width: 860px) {
       main { grid-template-columns: 1fr; }
       .grid-2, .grid-3, .coords-row { grid-template-columns: 1fr; }
-      .actions { justify-content: stretch; }
+      header { padding: 14px 16px; }
+      header h1 { font-size: .95rem; letter-spacing: 0; }
+      main { padding: 14px 10px 28px; }
+      form { padding: 12px; }
+      .intro { padding: 14px; }
+      .intro h2 { font-size: 1.18rem; }
+      .actions { justify-content: stretch; flex-direction: column-reverse; }
       .actions button { flex: 1; }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Punto Cero Acapulco · Captura de testimonios</h1>
+    <h1>Punto Cero Acapulco · Comparte tu historia</h1>
     <a href="index.html">Volver al mapa</a>
   </header>
 
   <main>
     <section>
       <div class="section-head">
-        <h2>Registro pendiente</h2>
-        <span class="status-pill">Pendiente de revisión</span>
+        <h2>Tu historia</h2>
+        <span class="status-pill">Revisión previa</span>
+      </div>
+      <div class="intro">
+        <h2>Cuéntanos qué viviste con Otis</h2>
+        <p>Sube tu audio y algunos datos básicos para ubicar tu relato. El equipo de Punto Cero lo revisará con cuidado antes de decidir si puede aparecer en el mapa.</p>
       </div>
 
       <form id="capture-form">
         <div class="notice">
-          Este formulario envía el audio y los metadatos a una cola privada de revisión ética y curatorial. Nada se publica automáticamente en el mapa.
+          Nada se publica automáticamente. Tu audio se guarda de forma privada para revisión y, si hace falta, el equipo puede pedirte más información.
         </div>
 
-        <div class="grid-2">
-          <div>
-            <label for="alias">Nombre o seudónimo</label>
-            <input id="alias" name="alias" autocomplete="name" placeholder="Ej. Anónimo, Doña L., Colectivo..." required />
-          </div>
-          <div>
-            <label for="audio-file">Archivo de audio</label>
-            <input id="audio-file" name="audio-file" type="file" accept=".mp3,.m4a,.wav,.ogg,audio/mpeg,audio/mp4,audio/wav,audio/ogg" required />
-            <div id="audio-file-status" class="file-status">Formatos permitidos: mp3, m4a, wav, ogg. Máximo: 100 MB.</div>
-          </div>
-        </div>
-
-        <div class="grid-3">
-          <div>
-            <label for="community">Comunidad</label>
-            <input id="community" name="community" placeholder="Ej. Barra Vieja, Renacimiento, comunidad rural..." required />
-          </div>
-          <div>
-            <label for="municipality">Municipio</label>
-            <input id="municipality" name="municipality" placeholder="Ej. Acapulco de Juárez, Coyuca de Benítez..." required />
-          </div>
-          <div>
-            <label for="locality">Localidad</label>
-            <input id="locality" name="locality" placeholder="Ej. colonia, ejido, playa, barrio..." required />
-          </div>
-        </div>
-
-        <div class="grid-3">
-          <div>
-            <label for="interview-date">Fecha de entrevista</label>
-            <input id="interview-date" name="interview-date" type="date" required />
-          </div>
-          <div>
-            <label for="interviewer">Nombre del entrevistador</label>
-            <input id="interviewer" name="interviewer" placeholder="Nombre o equipo responsable" required />
-          </div>
-          <div>
-            <label for="testimony-type">Tipo de testimonio</label>
-            <select id="testimony-type" name="testimony-type" required>
-              <option value="comunitario">Comunitario</option>
-              <option value="familiar">Familiar</option>
-              <option value="productor_rural">Productor rural</option>
-              <option value="pescador">Pescador</option>
-              <option value="comerciante">Comerciante</option>
-              <option value="estudiante">Estudiante</option>
-              <option value="servidor_publico">Servidor público</option>
-              <option value="otro">Otro</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label for="description">Descripción del testimonio</label>
-          <textarea id="description" name="description" placeholder="Describe brevemente de qué habla el audio, cuándo ocurrió y qué lugar o experiencia recuerda." required></textarea>
-        </div>
-
-        <div>
-          <label>Coordenadas</label>
-          <div class="coords-row">
+        <div class="step-block">
+          <div class="step-title"><span class="step-number">1</span>Primero, comparte el audio</div>
+          <div class="grid-2">
             <div>
-              <input id="latitude" name="latitude" inputmode="decimal" placeholder="Latitud" />
+              <label for="alias">¿Cómo quieres aparecer?</label>
+              <input id="alias" name="alias" autocomplete="name" placeholder="Ej. Anónimo, Doña L., familia, colectivo..." required />
+              <div class="hint">Puedes usar solo tu nombre, un apodo o "Anónimo".</div>
             </div>
             <div>
-              <input id="longitude" name="longitude" inputmode="decimal" placeholder="Longitud" />
+              <label for="audio-file">Tu audio</label>
+              <input id="audio-file" name="audio-file" type="file" accept=".mp3,.m4a,.wav,.ogg,audio/mpeg,audio/mp4,audio/wav,audio/ogg" required />
+              <div id="audio-file-status" class="file-status">Puedes subir mp3, m4a, wav u ogg. Máximo: 100 MB.</div>
             </div>
-            <button type="button" id="gps-button">Capturar GPS</button>
           </div>
-          <div class="hint">El GPS es opcional. La ubicación pública debe revisarse antes de publicarse.</div>
-        </div>
 
-        <div class="grid-2">
           <div>
-            <label for="coordinate-type">Tipo de coordenada pública sugerida</label>
-            <select id="coordinate-type" name="coordinate-type" required>
-              <option value="approximate">Aproximada</option>
-              <option value="exact">Exacta</option>
-              <option value="symbolic">Simbólica</option>
-              <option value="sensitive_displaced">Sensible/desplazada</option>
-              <option value="unknown">No definida</option>
-            </select>
-          </div>
-          <div>
-            <label for="sensitivity">Sensibilidad preliminar</label>
-            <select id="sensitivity" name="sensitivity" required>
-              <option value="medium">Media</option>
-              <option value="low">Baja</option>
-              <option value="high">Alta</option>
-            </select>
+            <label for="description">¿De qué trata tu historia?</label>
+            <textarea id="description" name="description" placeholder="Cuenta brevemente qué se escucha, qué pasó, cuándo ocurrió o qué lugar recuerdas." required></textarea>
           </div>
         </div>
 
-        <div>
-          <label>Consentimiento informado</label>
+        <div class="step-block">
+          <div class="step-title"><span class="step-number">2</span>Dinos de dónde viene el relato</div>
+          <div class="grid-3">
+            <div>
+              <label for="community">Comunidad o colonia</label>
+              <input id="community" name="community" placeholder="Ej. Barra Vieja, Renacimiento, comunidad rural..." required />
+            </div>
+            <div>
+              <label for="municipality">Municipio</label>
+              <input id="municipality" name="municipality" placeholder="Ej. Acapulco de Juárez, Coyuca de Benítez..." required />
+            </div>
+            <div>
+              <label for="locality">Localidad, barrio o paraje</label>
+              <input id="locality" name="locality" placeholder="Ej. colonia, ejido, playa, barrio..." required />
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div>
+              <label for="interview-date">Fecha del relato o grabación</label>
+              <input id="interview-date" name="interview-date" type="date" required />
+            </div>
+            <div>
+              <label for="interviewer">Quién registra esta historia</label>
+              <input id="interviewer" name="interviewer" placeholder="Tu nombre, familiar o equipo que ayuda" required />
+              <div class="hint">Si estás llenando esto por tu cuenta, escribe tu nombre o seudónimo.</div>
+            </div>
+            <div>
+              <label for="testimony-type">¿Qué tipo de historia es?</label>
+              <select id="testimony-type" name="testimony-type" required>
+                <option value="comunitario">Comunitaria</option>
+                <option value="familiar">Familiar</option>
+                <option value="productor_rural">Productor rural</option>
+                <option value="pescador">Pescador</option>
+                <option value="comerciante">Comerciante</option>
+                <option value="estudiante">Estudiante</option>
+                <option value="servidor_publico">Servidor público</option>
+                <option value="otro">Otra</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <details class="support-panel">
+          <summary>Ubicación exacta y datos para revisión</summary>
+          <div class="support-panel-body">
+            <p class="support-note">Estos datos ayudan al equipo a revisar el relato. Si no quieres compartir ubicación exacta, deja latitud y longitud vacías.</p>
+            <div>
+              <label>Ubicación exacta, si deseas compartirla</label>
+              <div class="coords-row">
+                <div>
+                  <input id="latitude" name="latitude" inputmode="decimal" placeholder="Latitud" />
+                </div>
+                <div>
+                  <input id="longitude" name="longitude" inputmode="decimal" placeholder="Longitud" />
+                </div>
+                <button type="button" id="gps-button">Usar ubicación del teléfono</button>
+              </div>
+              <div class="hint">El GPS es opcional. Antes de publicar cualquier ubicación, el equipo la revisa.</div>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <label for="coordinate-type">Cómo debe tratarse la ubicación</label>
+                <select id="coordinate-type" name="coordinate-type" required>
+                  <option value="approximate">Aproximada</option>
+                  <option value="exact">Exacta</option>
+                  <option value="symbolic">Simbólica</option>
+                  <option value="sensitive_displaced">Sensible/desplazada</option>
+                  <option value="unknown">No definida</option>
+                </select>
+              </div>
+              <div>
+                <label for="sensitivity">Cuidado que requiere el relato</label>
+                <select id="sensitivity" name="sensitivity" required>
+                  <option value="medium">Revisar con cuidado</option>
+                  <option value="low">Bajo</option>
+                  <option value="high">Alto</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <div class="step-block">
+          <div class="step-title"><span class="step-number">3</span>Permiso para guardar y revisar</div>
+          <div class="ethics-note">
+            <strong>Antes de enviar, lee este consentimiento informado breve.</strong>
+            <ul>
+              <li>Tu participación es voluntaria y con fines académicos para la tesis doctoral sobre trabajo social de la emergencia por el huracán Otis.</li>
+              <li>Solo deben participar personas adultas. Puedes no enviar el audio, omitir información o pedir después que se retire tu testimonio.</li>
+              <li>Tu voz y tu relato se tratarán como información sensible: se guardarán de forma privada, con acceso restringido al investigador y supervisión académica.</li>
+              <li>En la tesis o publicaciones solo se usarán fragmentos anonimizados o seudónimos. No se publicará tu nombre real ni tu ubicación exacta sin revisión y permiso.</li>
+              <li>Si recordar estos hechos te causa malestar, puedes detenerte y no enviar el formulario.</li>
+            </ul>
+          </div>
+          <div class="support-note">Marca las casillas para confirmar que entiendes cómo se cuidará tu historia.</div>
           <div class="consent-list">
             <label class="check-row">
               <input type="checkbox" id="consent-archive" required />
-              <span>Autorizo que el audio se conserve como registro pendiente para revisión del equipo.</span>
+              <span>Acepto participar voluntariamente y autorizo que mi audio se guarde de forma privada para revisión académica.</span>
             </label>
             <label class="check-row">
               <input type="checkbox" id="consent-review" required />
-              <span>Entiendo que el testimonio no se publicará automáticamente en el mapa.</span>
+              <span>Entiendo que mi historia no se publicará automáticamente en el mapa y que será revisada antes de cualquier uso público.</span>
             </label>
             <label class="check-row">
               <input type="checkbox" id="consent-contact" />
-              <span>El equipo puede solicitar más información antes de decidir si se publica.</span>
+              <span>El equipo puede contactarme para aclarar dudas, confirmar permisos o atender una solicitud de retiro.</span>
             </label>
             <label class="check-row">
               <input type="checkbox" id="consent-public" />
-              <span>Autorizo considerar el testimonio para publicación pública después de revisión.</span>
+              <span>Autorizo que el equipo considere mi historia para publicación pública, siempre después de revisarla y proteger mi identidad cuando sea necesario.</span>
             </label>
           </div>
         </div>
 
         <div class="actions">
-          <button type="button" id="preview-button">Vista previa JSON</button>
-          <button type="button" id="download-button">Descargar registro para subir después</button>
-          <button type="submit" class="primary">Enviar para revisión</button>
+          <button type="button" id="preview-button" class="technical-only">Vista previa técnica</button>
+          <button type="button" id="download-button">Guardar respaldo sin internet</button>
+          <button type="submit" class="primary">Enviar mi historia</button>
         </div>
         <div id="message" class="message" aria-live="polite"></div>
       </form>
     </section>
 
-    <section>
+    <section class="technical-preview" aria-hidden="true">
       <div class="section-head">
-        <h2>JSON generado</h2>
+        <h2>Registro técnico generado</h2>
         <span class="status-pill">No publicado</span>
       </div>
       <div class="preview">
