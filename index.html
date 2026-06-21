@@ -168,6 +168,121 @@
     .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: #c9d1d9; }
     .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
+    /* Bienvenida al mapa */
+    #map-help-button {
+      position: absolute; top: 52px; right: 12px; z-index: 6;
+      display: inline-flex; align-items: center; gap: 6px;
+      min-height: 34px; padding: 0 12px;
+      border: 1px solid #30363d; border-radius: 999px;
+      background: #161b22cc; backdrop-filter: blur(8px);
+      color: #c9d1d9; font-size: .74rem; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      box-shadow: 0 4px 16px #0006;
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    #map-help-button:hover,
+    #map-help-button:focus-visible {
+      color: #f0f6fc; border-color: #58a6ff88; background: #21262dcc;
+      outline: none;
+    }
+    #content-legend {
+      position: absolute; bottom: 28px; left: 12px; z-index: 5;
+      display: grid; grid-template-columns: repeat(2, auto); gap: 7px 12px;
+      background: #161b22cc; backdrop-filter: blur(8px);
+      border: 1px solid #30363d; border-radius: 8px;
+      padding: 10px 12px;
+      color: #c9d1d9; font-size: .72rem;
+      box-shadow: 0 4px 18px #0007;
+    }
+    .content-legend-item { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+    #onboarding-overlay {
+      display: none; position: fixed; inset: 0; z-index: 900;
+      align-items: center; justify-content: center;
+      padding: 18px; background: rgba(0,0,0,.72);
+      backdrop-filter: blur(6px);
+    }
+    #onboarding-overlay.open { display: flex; }
+    #onboarding-dialog {
+      width: min(720px, 94vw); max-height: 90vh; overflow-y: auto;
+      border: 1px solid #30363d; border-radius: 12px;
+      background:
+        radial-gradient(circle at 88% 10%, rgba(88,166,255,.12), transparent 30%),
+        #161b22;
+      box-shadow: 0 20px 70px #000c;
+      padding: 26px; position: relative;
+      animation: fadeUp .22s ease;
+    }
+    #onboarding-close {
+      position: absolute; top: 14px; right: 16px;
+      width: 34px; min-height: 34px; border-radius: 50%;
+      border: 1px solid #30363d; background: #0d1117aa;
+      color: #8b949e; font-size: 1.2rem; cursor: pointer;
+    }
+    #onboarding-close:hover,
+    #onboarding-close:focus-visible { color: #f0f6fc; border-color: #58a6ff88; outline: none; }
+    .onboarding-kicker {
+      color: #58a6ff; font-size: .72rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .12em; margin-bottom: 8px;
+    }
+    #onboarding-dialog h2 {
+      color: #f0f6fc; font-size: 1.45rem; line-height: 1.15;
+      margin: 0 42px 14px 0;
+    }
+    .onboarding-copy {
+      color: #c9d1d9; font-size: .94rem; line-height: 1.65;
+      max-width: 620px;
+    }
+    .onboarding-copy p { margin: 0 0 14px; }
+    .onboarding-copy strong { color: #f0f6fc; }
+    .onboarding-divider { height: 1px; background: #30363d; margin: 20px 0; }
+    #onboarding-dialog h3 {
+      color: #ff7b72; font-size: .98rem; margin: 0 0 14px;
+    }
+    .onboarding-steps {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px; margin-bottom: 22px;
+    }
+    .onboarding-step {
+      min-height: 82px; border: 1px solid #30363d; border-radius: 8px;
+      background: rgba(13,17,23,.58);
+      padding: 13px; display: flex; gap: 11px; align-items: flex-start;
+      color: #c9d1d9; font-size: .86rem; line-height: 1.45;
+    }
+    .onboarding-step span {
+      flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #21262d; border: 1px solid #30363d; font-size: 1.05rem;
+    }
+    #onboarding-start {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 44px; width: min(360px, 100%);
+      border: none; border-radius: 8px; background: #1f6feb;
+      color: #fff; font-family: inherit; font-size: .95rem;
+      font-weight: 800; cursor: pointer;
+      box-shadow: 0 8px 24px rgba(31,111,235,.32);
+    }
+    #onboarding-start:hover,
+    #onboarding-start:focus-visible { background: #388bfd; outline: none; }
+    #onboarding-spotlight {
+      position: absolute; z-index: 7; display: none;
+      max-width: 190px; padding: 9px 12px;
+      border: 1px solid #ffa657aa; border-radius: 8px;
+      background: #161b22ee; color: #f0f6fc;
+      font-size: .78rem; font-weight: 800; line-height: 1.35;
+      box-shadow: 0 8px 28px #000b, 0 0 24px rgba(255,166,87,.22);
+      pointer-events: none; transform: translate(14px, -50%);
+    }
+    #onboarding-spotlight.visible { display: block; animation: spotlightIn .22s ease; }
+    #onboarding-spotlight::before {
+      content: ''; position: absolute; left: -7px; top: 50%;
+      width: 12px; height: 12px; transform: translateY(-50%) rotate(45deg);
+      background: #161b22; border-left: 1px solid #ffa657aa; border-bottom: 1px solid #ffa657aa;
+    }
+    @keyframes spotlightIn {
+      from { opacity: 0; transform: translate(8px, -50%); }
+      to { opacity: 1; transform: translate(14px, -50%); }
+    }
+
     /* Selector de estilos */
     .style-btn { display: none; }
 
@@ -444,6 +559,39 @@
       #legend    { display: none; }
       #info-panel { display: none; }
       #stats { display: none; }
+      #map-help-button {
+        top: 10px;
+        right: 10px;
+        min-height: 38px;
+        padding: 0 11px;
+        font-size: .72rem;
+      }
+      #content-legend {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        padding: 8px 10px;
+        font-size: .65rem;
+      }
+      .content-legend-item {
+        justify-content: center;
+        gap: 4px;
+      }
+      #onboarding-dialog {
+        width: min(94vw, 540px);
+        padding: 22px 18px;
+        border-radius: 10px;
+      }
+      #onboarding-dialog h2 { font-size: 1.25rem; margin-right: 40px; }
+      .onboarding-copy { font-size: .88rem; line-height: 1.55; }
+      .onboarding-steps { grid-template-columns: 1fr; gap: 8px; }
+      .onboarding-step { min-height: auto; padding: 11px; font-size: .82rem; }
+      #onboarding-spotlight {
+        max-width: 170px;
+        font-size: .74rem;
+      }
       .maplibregl-ctrl-top-left { display: none; }
       #fab-add {
         right: 10px;
@@ -924,6 +1072,8 @@
 <div id="map">
   <div id="map-tooltip"></div>
   <div id="stats">Puntos visibles: <strong id="visible-count">0</strong></div>
+  <button id="map-help-button" type="button" aria-haspopup="dialog" aria-controls="onboarding-overlay">&#10068; ¿Cómo explorar?</button>
+  <div id="onboarding-spotlight" aria-hidden="true">Prueba escuchando este punto</div>
   <div id="style-switcher" style="display:none">
     <button class="style-btn active" data-style="dark">Oscuro</button>
     <button class="style-btn" data-style="voyager">Calles</button>
@@ -931,7 +1081,7 @@
     <button class="style-btn" data-style="positron">Claro</button>
   </div>
   <!-- Panel informativo -->
-  <div id="info-panel">
+  <div id="info-panel" class="hidden">
     <button id="info-close" title="Cerrar">×</button>
     <h5>&#127911; Cómo explorar</h5>
     <ul>
@@ -951,10 +1101,39 @@
   </div>
   <button id="fab-add" title="Agregar punto sonoro">+</button>
   <div id="fab-hint">Haz clic en el mapa para colocar el punto</div>
+  <div id="content-legend" aria-label="Tipos de contenidos sonoros">
+    <div class="content-legend-item"><span>&#127908;</span><span>Testimonios</span></div>
+    <div class="content-legend-item"><span>&#128251;</span><span>Radio</span></div>
+    <div class="content-legend-item"><span>&#127911;</span><span>Podcast</span></div>
+    <div class="content-legend-item"><span>&#127925;</span><span>Música</span></div>
+  </div>
   <div id="legend">
     <h4>Categorias</h4>
     <div id="legend-items"></div>
   </div>
+</div>
+
+<!-- BIENVENIDA AL MAPA -->
+<div id="onboarding-overlay" aria-hidden="true">
+  <section id="onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <button id="onboarding-close" type="button" aria-label="Cerrar bienvenida">&#215;</button>
+    <div class="onboarding-kicker">Mapa sonoro</div>
+    <h2 id="onboarding-title">Bienvenido a Punto Cero</h2>
+    <div class="onboarding-copy">
+      <p>Este mapa reúne voces, recuerdos y relatos relacionados con el huracán Otis.</p>
+      <p>Aquí encontrarás testimonios ciudadanos, programas de radio, podcasts, piezas musicales y otros registros sonoros que documentan distintas experiencias del desastre.</p>
+      <p><strong>No existe un recorrido correcto.</strong><br />Puedes comenzar por cualquier punto.</p>
+    </div>
+    <div class="onboarding-divider"></div>
+    <h3>¿Cómo explorar?</h3>
+    <div class="onboarding-steps">
+      <div class="onboarding-step"><span>&#127911;</span><p>Haz clic en cualquier punto del mapa.</p></div>
+      <div class="onboarding-step"><span>&#128205;</span><p>Cada marcador representa el lugar donde se produjo, grabó o emitió una pieza sonora.</p></div>
+      <div class="onboarding-step"><span>&#127897;</span><p>Escucha distintas voces y perspectivas sobre Otis.</p></div>
+      <div class="onboarding-step"><span>&#128506;</span><p>Construye tu propio recorrido.</p></div>
+    </div>
+    <button id="onboarding-start" type="button">Comenzar exploración</button>
+  </section>
 </div>
 
 <!-- MODAL -->
@@ -2784,6 +2963,150 @@ document.addEventListener('visibilitychange', function() {
 setInterval(function() {
   if (!document.hidden) refreshApprovedTestimonies();
 }, 60000);
+
+/* =================================================================
+   BIENVENIDA AL MAPA — primera visita
+   La portada conserva su comportamiento. Esta invitacion aparece solo
+   al entrar al mapa y puede reabrirse con el boton de ayuda.
+================================================================= */
+var ONBOARDING_STORAGE_KEY = 'puntoCeroOnboardingSeen';
+var onboardingShouldSpotlight = false;
+var onboardingSpotlightTimer = null;
+var onboardingLastFocus = null;
+
+function canUseOnboardingStorage() {
+  try {
+    localStorage.setItem('__pc_storage_test__', '1');
+    localStorage.removeItem('__pc_storage_test__');
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function hasSeenOnboarding() {
+  if (!canUseOnboardingStorage()) return false;
+  return localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+}
+
+function markOnboardingSeen() {
+  if (!canUseOnboardingStorage()) return;
+  localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+}
+
+function openOnboarding(options) {
+  var overlay = document.getElementById('onboarding-overlay');
+  var start = document.getElementById('onboarding-start');
+  if (!overlay) return;
+  onboardingShouldSpotlight = !!(options && options.spotlightOnClose);
+  onboardingLastFocus = document.activeElement;
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  setTimeout(function() { if (start) start.focus(); }, 40);
+}
+
+function closeOnboarding() {
+  var overlay = document.getElementById('onboarding-overlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  markOnboardingSeen();
+  if (onboardingLastFocus && onboardingLastFocus.focus && onboardingLastFocus.offsetParent !== null) {
+    onboardingLastFocus.focus();
+  }
+  if (onboardingShouldSpotlight) {
+    onboardingShouldSpotlight = false;
+    setTimeout(spotlightFirstVisiblePoint, 360);
+  }
+}
+
+function scheduleFirstVisitOnboarding() {
+  if (hasSeenOnboarding()) return;
+  setTimeout(function() {
+    var splash = document.getElementById('cover-splash');
+    if (splash && splash.style.display !== 'none') return;
+    openOnboarding({ spotlightOnClose: true });
+  }, 780);
+}
+
+function chooseSpotlightPoint() {
+  var points = typeof getFilteredPoints === 'function' ? getFilteredPoints() : SOUND_POINTS;
+  points = points.filter(function(point) {
+    return point && point.id !== 28 && Array.isArray(point.coords);
+  });
+  if (!points.length) return null;
+  if (map && map.getBounds) {
+    var bounds = map.getBounds();
+    var inView = points.filter(function(point) {
+      return bounds.contains(point.coords);
+    });
+    if (inView.length) return inView[0];
+  }
+  return points[0];
+}
+
+function showSpotlightLabel(point) {
+  var label = document.getElementById('onboarding-spotlight');
+  if (!label || !point || !map || !map.project) return;
+  var pos = map.project(point.coords);
+  var mapRect = document.getElementById('map').getBoundingClientRect();
+  var maxLeft = Math.max(18, mapRect.width - 210);
+  var left = Math.min(Math.max(pos.x, 18), maxLeft);
+  var top = Math.min(Math.max(pos.y, 42), mapRect.height - 58);
+  label.style.left = left + 'px';
+  label.style.top = top + 'px';
+  label.classList.add('visible');
+  clearTimeout(onboardingSpotlightTimer);
+  onboardingSpotlightTimer = setTimeout(function() {
+    label.classList.remove('visible');
+  }, 5200);
+}
+
+function spotlightFirstVisiblePoint() {
+  if (!map || !map.loaded) return;
+  if (!map.loaded()) {
+    map.once('load', spotlightFirstVisiblePoint);
+    return;
+  }
+  var point = chooseSpotlightPoint();
+  if (!point) return;
+  activePointId = point.id;
+  document.querySelectorAll('.point-item').forEach(function(el) {
+    el.classList.toggle('active', String(el.dataset.id) === String(point.id));
+  });
+  map.easeTo({ center: point.coords, zoom: Math.max(map.getZoom(), 8.5), duration: 900 });
+  setTimeout(function() { showSpotlightLabel(point); }, 940);
+}
+
+(function initMapOnboarding() {
+  var helpButton = document.getElementById('map-help-button');
+  var overlay = document.getElementById('onboarding-overlay');
+  var closeButton = document.getElementById('onboarding-close');
+  var startButton = document.getElementById('onboarding-start');
+  var coverEnter = document.getElementById('cover-enter');
+
+  if (helpButton) {
+    helpButton.addEventListener('click', function() {
+      openOnboarding({ spotlightOnClose: false });
+    });
+  }
+  if (closeButton) closeButton.addEventListener('click', closeOnboarding);
+  if (startButton) startButton.addEventListener('click', closeOnboarding);
+  if (overlay) {
+    overlay.addEventListener('click', function(event) {
+      if (event.target === overlay) closeOnboarding();
+    });
+  }
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') closeOnboarding();
+  });
+  if (coverEnter) {
+    coverEnter.addEventListener('click', scheduleFirstVisitOnboarding);
+  }
+  if (document.getElementById('cover-splash') && document.getElementById('cover-splash').style.display === 'none') {
+    scheduleFirstVisitOnboarding();
+  }
+})();
 
 /* Copiar link al punto actual al portapapeles */
 function sharePoint(id) {
