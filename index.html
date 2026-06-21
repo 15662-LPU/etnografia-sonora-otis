@@ -2009,7 +2009,6 @@ async function loadApprovedTestimonies() {
     window.PUNTO_CERO_APPROVED_TESTIMONIES_ROWS = rows;
     window.PUNTO_CERO_APPROVED_TESTIMONIES = points;
     updateHeroSoundCount();
-    console.info('Testimonios aprobados cargados desde Supabase:', points.length, 'de', rows.length, 'fila(s).');
     return points;
   } catch (error) {
     console.warn('No se cargaron testimonios aprobados desde Supabase. Se conserva corpus estatico.', error);
@@ -2528,7 +2527,6 @@ function showRoutePath() {
     map.fitBounds(bounds, { padding: 80, maxZoom: 8, duration: 1500 });
   }
 
-  console.log('Ruta narrativa activada');
 }
 
 function hideRoutePath() {
@@ -2539,7 +2537,6 @@ function hideRoutePath() {
   if (map.getSource('route-path')) {
     map.removeSource('route-path');
   }
-  console.log('Ruta narrativa desactivada');
 }
 
 function navigateToRoutePoint(index) {

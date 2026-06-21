@@ -485,15 +485,6 @@
       return Array.isArray(data) ? data : [];
     }
 
-    async function fetchTestRecordStatus() {
-      var testId = 'd0fc7829-6b0a-498e-9a98-fe9b72e0381e';
-      var response = await api('/rest/v1/submissions?id=eq.' + testId + '&select=id,status,audio_path', {}, currentSession);
-      var data = await response.json().catch(function() { return []; });
-      if (!response.ok) return 'No se pudo verificar el registro de prueba.';
-      if (!Array.isArray(data) || !data.length) return 'Registro de prueba no visible para esta sesion.';
-      return 'Registro de prueba ' + data[0].id + ' tiene status=' + data[0].status + '.';
-    }
-
     function field(label, value) {
       return '<div class="detail"><strong>' + escapeHtml(label) + '</strong><span>' + escapeHtml(value || 'No registrado') + '</span></div>';
     }
@@ -555,9 +546,8 @@
         }
       }
       renderRows(rows);
-      var testStatus = await fetchTestRecordStatus();
       var jwtEmail = jwtPayload.email ? ' JWT email: ' + jwtPayload.email + '.' : '';
-      setStatus(workStatus, rows.length + ' testimonio(s) pendiente(s).' + jwtEmail + ' ' + testStatus, 'ok');
+      setStatus(workStatus, rows.length + ' testimonio(s) pendiente(s).' + jwtEmail, 'ok');
     }
 
     async function updateStatus(id, nextStatus) {
@@ -566,13 +556,19 @@
       });
       var notes = notesEl ? notesEl.value.trim() : '';
       var now = new Date().toISOString();
+      var reviewStatusByAction = {
+        pending: 'pending',
+        approved: 'approved',
+        rejected: 'rejected'
+      };
+      var curatorialReviewStatus = reviewStatusByAction[nextStatus];
       var payload = {
         status: nextStatus,
         reviewed_by: ADMIN_EMAIL,
         reviewed_at: now,
         curator: ADMIN_EMAIL,
         curated_at: nextStatus === 'pending' ? null : now,
-        curatorial_review_status: nextStatus,
+        curatorial_review_status: curatorialReviewStatus,
         curatorial_notes: notes || null,
         admin_notes: notes || null
       };
@@ -586,6 +582,9 @@
       }, currentSession);
       if (!response.ok) {
         var data = await response.json().catch(function() { return {}; });
+        if (data.message && data.message.indexOf('submissions_curatorial_review_status_check') !== -1) {
+          throw new Error('PostgreSQL rechazo curatorial_review_status="' + curatorialReviewStatus + '". Ejecuta supabase/fix_curatorial_review_status_check.sql para permitir pending, approved y rejected.');
+        }
         throw new Error(data.message || 'No se pudo actualizar el testimonio');
       }
     }
