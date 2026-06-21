@@ -1890,6 +1890,119 @@ var SOUND_POINTS = [
 ];
 
 /* =================================================================
+   TESTIMONIOS APROBADOS — Supabase
+   Carga solo registros status=approved desde la vista publica segura.
+   Si Supabase falla, el mapa conserva SOUND_POINTS como respaldo.
+================================================================= */
+var SUPABASE_URL = 'https://zopzhhqzuslyafznwhnc.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvcHpoaHF6dXNseWFmem53aG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzA2NTQsImV4cCI6MjA5NjYwNjY1NH0.KW9A72h4QI7sdkiUqz_jYqElmD_npt5PGctLczHM2D0';
+var SUPABASE_BUCKET = 'testimonios-audio';
+
+function supabaseHeaders(extra) {
+  var headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: 'Bearer ' + SUPABASE_ANON_KEY
+  };
+  Object.keys(extra || {}).forEach(function(k) { headers[k] = extra[k]; });
+  return headers;
+}
+
+function supabaseFetch(path, options) {
+  return fetch(SUPABASE_URL + path, Object.assign({
+    headers: supabaseHeaders()
+  }, options || {}));
+}
+
+function publicLocation(row) {
+  return [row.community, row.locality, row.municipality].filter(Boolean).join(', ') ||
+    row.place_label ||
+    'Lugar pendiente de curaduria';
+}
+
+function approvedRowToPoint(row, signedUrl) {
+  var lat = Number(row.latitude);
+  var lng = Number(row.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  var label = publicLocation(row);
+  return {
+    id: 'supabase-' + row.id,
+    title: row.public_name_or_alias ? 'Historia de ' + row.public_name_or_alias : 'Historia comunitaria',
+    location: label,
+    category: 'cultural',
+    description: row.description || 'Testimonio comunitario aprobado por el equipo de Punto Cero.',
+    recorder: row.public_name_or_alias || 'Testimonio comunitario',
+    date: row.interview_date || 'Fecha no registrada',
+    duration: row.audio_duration_seconds ? Math.round(row.audio_duration_seconds / 60) + ' min' : '--',
+    tags: ['testimonio comunitario', 'aporte ciudadano', row.testimony_type || 'comunitario'].filter(Boolean),
+    coords: [lng, lat],
+    audio: signedUrl,
+    audio_kind: 'file',
+    source: 'supabase',
+    approved_submission_id: row.id
+  };
+}
+
+async function createSignedAudioUrl(audioPath) {
+  if (!audioPath) return null;
+  var response = await supabaseFetch('/storage/v1/object/sign/' + SUPABASE_BUCKET + '/' + encodeURIComponent(audioPath).replace(/%2F/g, '/'), {
+    method: 'POST',
+    headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ expiresIn: 3600 })
+  });
+  if (!response.ok) throw new Error('No se pudo firmar audio aprobado');
+  var data = await response.json();
+  if (!data.signedURL) return null;
+  return data.signedURL.indexOf('http') === 0 ? data.signedURL : SUPABASE_URL + data.signedURL;
+}
+
+async function loadApprovedTestimonies() {
+  try {
+    var response = await supabaseFetch('/rest/v1/approved_testimonies_public?select=*');
+    if (!response.ok) throw new Error('No se pudo leer approved_testimonies_public');
+    var rows = (await response.json()).filter(function(row) {
+      return row.status === 'approved';
+    });
+    var points = [];
+    for (var i = 0; i < rows.length; i++) {
+      var signedUrl = null;
+      try {
+        signedUrl = await createSignedAudioUrl(rows[i].audio_path);
+      } catch (audioError) {
+        console.warn('No se pudo generar signed URL para testimonio aprobado', rows[i].id, audioError);
+        signedUrl = null;
+      }
+      var point = approvedRowToPoint(rows[i], signedUrl);
+      if (point) {
+        points.push(point);
+      } else {
+        console.warn('Testimonio aprobado omitido por coordenadas invalidas', rows[i].id, rows[i].latitude, rows[i].longitude);
+      }
+    }
+    SOUND_POINTS = SOUND_POINTS.filter(function(p) { return p.source !== 'supabase'; }).concat(points);
+    window.PUNTO_CERO_APPROVED_TESTIMONIES_ROWS = rows;
+    window.PUNTO_CERO_APPROVED_TESTIMONIES = points;
+    console.info('Testimonios aprobados cargados desde Supabase:', points.length, 'de', rows.length, 'fila(s).');
+    return points;
+  } catch (error) {
+    console.warn('No se cargaron testimonios aprobados desde Supabase. Se conserva corpus estatico.', error);
+    window.PUNTO_CERO_APPROVED_TESTIMONIES = [];
+    return [];
+  }
+}
+
+function refreshApprovedTestimonies() {
+  return loadApprovedTestimonies().then(function(points) {
+    if (map && map.getSource && map.getSource('sounds')) {
+      applyFilter();
+    }
+    return points;
+  }).catch(function(error) {
+    console.error('Error al refrescar testimonios aprobados desde Supabase', error);
+    return [];
+  });
+}
+
+/* =================================================================
    RUTA NARRATIVA — secuencia de escucha
 ================================================================= */
 var NARRATIVE_ROUTE = [
@@ -2244,7 +2357,7 @@ function renderList(points) {
   points.forEach(function(p) {
     var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
     var item = document.createElement('div');
-    item.className = 'point-item' + (p.id === activePointId ? ' active' : '');
+    item.className = 'point-item' + (String(p.id) === String(activePointId) ? ' active' : '');
     item.dataset.id = p.id;
     item.setAttribute('role', 'button');
     item.setAttribute('tabindex', '0');
@@ -2319,7 +2432,7 @@ function applyFilter() {
   document.getElementById('visible-count').textContent = filtered.length;
   updateStats(filtered);
   noResults.style.display = filtered.length === 0 ? 'block' : 'none';
-  if (currentPopup && !filtered.some(function(p) { return p.id === activePointId; })) {
+  if (currentPopup && !filtered.some(function(p) { return String(p.id) === String(activePointId); })) {
     currentPopup.remove(); currentPopup = null;
   }
 }
@@ -2343,7 +2456,7 @@ function toggleRouteMode() {
 function showRoutePath() {
   // Crear GeoJSON con línea conectando puntos de la ruta
   var routePoints = NARRATIVE_ROUTE.map(function(id) {
-    return SOUND_POINTS.find(function(p) { return p.id === id; });
+    return SOUND_POINTS.find(function(p) { return String(p.id) === String(id); });
   }).filter(Boolean);
 
   var routeGeoJSON = {
@@ -2402,7 +2515,7 @@ function hideRoutePath() {
 function navigateToRoutePoint(index) {
   if (index < 0 || index >= NARRATIVE_ROUTE.length) return;
   var pointId = NARRATIVE_ROUTE[index];
-  var point = SOUND_POINTS.find(function(p) { return p.id === pointId; });
+  var point = SOUND_POINTS.find(function(p) { return String(p.id) === String(pointId); });
   if (point) {
     flyToPoint(point);
   }
@@ -2574,13 +2687,13 @@ map.on('load', function() {
   map.on('touchend', 'unclustered-point', function(e) {
     _ptTouchTs = Date.now();
     var props = e.features[0].properties;
-    var p = SOUND_POINTS.find(function(sp) { return sp.id === props.id; });
+    var p = SOUND_POINTS.find(function(sp) { return String(sp.id) === String(props.id); });
     if (p) flyToPoint(p);
   });
   map.on('click', 'unclustered-point', function(e) {
     if (Date.now() - _ptTouchTs < 600) return; // ya manejado por touchend
     var props = e.features[0].properties;
-    var p = SOUND_POINTS.find(function(sp) { return sp.id === props.id; });
+    var p = SOUND_POINTS.find(function(sp) { return String(sp.id) === String(props.id); });
     if (p) flyToPoint(p);
   });
 
@@ -2592,7 +2705,7 @@ map.on('load', function() {
   map.on('mouseenter', 'unclustered-point', function(e) {
     map.getCanvas().style.cursor = 'pointer';
     var props = e.features[0].properties;
-    var p = SOUND_POINTS.find(function(sp) { return sp.id === props.id; });
+    var p = SOUND_POINTS.find(function(sp) { return String(sp.id) === String(props.id); });
     if (!p) return;
     var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro' };
     var mins = parseDurationMinutes(p.duration);
@@ -2617,17 +2730,33 @@ map.on('load', function() {
   });
 
   applyFilter();
+  var initialApprovedLoad = refreshApprovedTestimonies();
 
   /* URL deeplink: abrir punto directamente si hay ?id=N en la URL */
   (function() {
     var params = new URLSearchParams(window.location.search);
-    var idParam = parseInt(params.get('id'), 10);
+    var rawId = params.get('id');
+    var idParam = rawId && /^\d+$/.test(rawId) ? parseInt(rawId, 10) : rawId;
     if (idParam) {
-      var p = SOUND_POINTS.find(function(sp) { return sp.id === idParam; });
-      if (p) setTimeout(function() { flyToPoint(p); }, 900);
+      initialApprovedLoad.then(function() {
+        var p = SOUND_POINTS.find(function(sp) { return String(sp.id) === String(idParam); });
+        if (p) setTimeout(function() { flyToPoint(p); }, 900);
+      });
     }
   })();
 });
+
+window.addEventListener('focus', function() {
+  refreshApprovedTestimonies();
+});
+
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) refreshApprovedTestimonies();
+});
+
+setInterval(function() {
+  if (!document.hidden) refreshApprovedTestimonies();
+}, 60000);
 
 /* Copiar link al punto actual al portapapeles */
 function sharePoint(id) {
@@ -2673,7 +2802,7 @@ function flyToPoint(p) {
   activePointId = p.id;
   map.flyTo({ center: p.coords, zoom: Math.max(map.getZoom(), 11), speed: 1.2, curve: 1.4 });
   document.querySelectorAll('.point-item').forEach(function(el) {
-    el.classList.toggle('active', +el.dataset.id === p.id);
+    el.classList.toggle('active', String(el.dataset.id) === String(p.id));
   });
   if (currentPopup) { currentPopup.remove(); currentPopup = null; }
 
@@ -2785,11 +2914,19 @@ function buildPopupHTML(p) {
         ' Abrir en Spotify' +
       '</a>';
   } else if (p.audio) {
-    audioBlock =
-      '<div class="audio-wrap">' +
-        '<iframe src="' + p.audio + '" width="100%" height="180" frameborder="0" scrolling="no" allowfullscreen ' +
-          'title="Audio etnografia sonora" style="border-radius:8px;display:block;"></iframe>' +
-      '</div>';
+    if (p.audio_kind === 'file') {
+      audioBlock =
+        '<div class="audio-wrap">' +
+          '<audio controls preload="metadata" src="' + p.audio + '"></audio>' +
+          '<a class="spotify-link" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>' +
+        '</div>';
+    } else {
+      audioBlock =
+        '<div class="audio-wrap">' +
+          '<iframe src="' + p.audio + '" width="100%" height="180" frameborder="0" scrolling="no" allowfullscreen ' +
+            'title="Audio etnografia sonora" style="border-radius:8px;display:block;"></iframe>' +
+        '</div>';
+    }
   } else {
     audioBlock = '<div class="spotify-no-audio">Sin audio asignado — agrega el link de Spotify en SOUND_POINTS[].spotify</div>';
   }
@@ -2828,7 +2965,7 @@ function buildPopupHTML(p) {
     audioBlock +
     '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">' + tags + '</div>' +
     '<div style="margin-top:10px;display:flex;justify-content:flex-end">' +
-      '<button onclick="sharePoint(' + p.id + ')" style="background:none;border:none;color:#8b949e;font-size:.7rem;cursor:pointer;display:flex;align-items:center;gap:4px;padding:0" title="Copiar enlace a este punto">' +
+      '<button onclick="sharePoint(' + JSON.stringify(p.id) + ')" style="background:none;border:none;color:#8b949e;font-size:.7rem;cursor:pointer;display:flex;align-items:center;gap:4px;padding:0" title="Copiar enlace a este punto">' +
         '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' +
         ' Compartir punto' +
       '</button>' +
@@ -2872,11 +3009,18 @@ function buildMobileSheetHTML(p) {
       '<a class="mobile-listen-primary" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">' +
         '&#9654; Abrir audio' +
       '</a>';
-    player =
-      '<div class="mobile-sheet-player audio-wrap">' +
-        '<iframe src="' + p.audio + '" width="100%" height="180" frameborder="0" scrolling="no" allowfullscreen ' +
-          'title="Audio etnografia sonora" style="border-radius:8px;display:block;"></iframe>' +
-      '</div>';
+    if (p.audio_kind === 'file') {
+      player =
+        '<div class="mobile-sheet-player audio-wrap">' +
+          '<audio controls preload="metadata" src="' + p.audio + '"></audio>' +
+        '</div>';
+    } else {
+      player =
+        '<div class="mobile-sheet-player audio-wrap">' +
+          '<iframe src="' + p.audio + '" width="100%" height="180" frameborder="0" scrolling="no" allowfullscreen ' +
+            'title="Audio etnografia sonora" style="border-radius:8px;display:block;"></iframe>' +
+        '</div>';
+    }
   }
 
   return (
@@ -2897,7 +3041,7 @@ function buildMobileSheetHTML(p) {
     player +
     (tags ? '<div class="mobile-sheet-tags">' + tags + '</div>' : '') +
     '<div style="margin-top:12px;display:flex;justify-content:flex-end">' +
-      '<button onclick="sharePoint(' + p.id + ')" style="background:none;border:none;color:#8b949e;font-size:.76rem;cursor:pointer;padding:0">Compartir punto</button>' +
+      '<button onclick="sharePoint(' + JSON.stringify(p.id) + ')" style="background:none;border:none;color:#8b949e;font-size:.76rem;cursor:pointer;padding:0">Compartir punto</button>' +
     '</div>'
   );
 }
