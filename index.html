@@ -851,7 +851,7 @@
     <div class="cover-rule"></div>
     <p class="cover-sub">Registro sonoro del Huracán Otis<br>Acapulco, 25 de octubre de 2023</p>
     <div class="cover-tags">
-      <span class="cover-tag accent">61 piezas sonoras</span>
+      <span class="cover-tag accent" id="cover-sound-count">61 piezas sonoras</span>
       <span class="cover-tag">Podcasts</span>
       <span class="cover-tag">Corridos</span>
       <span class="cover-tag">Crónicas</span>
@@ -1905,6 +1905,25 @@ var SOUND_POINTS = [
 var SUPABASE_URL = 'https://zopzhhqzuslyafznwhnc.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvcHpoaHF6dXNseWFmem53aG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzA2NTQsImV4cCI6MjA5NjYwNjY1NH0.KW9A72h4QI7sdkiUqz_jYqElmD_npt5PGctLczHM2D0';
 var SUPABASE_BUCKET = 'testimonios-audio';
+var BASE_SOUND_POINT_COUNT = countUniqueSoundPieces(SOUND_POINTS);
+
+function countUniqueSoundPieces(points) {
+  var seen = {};
+  return points.reduce(function(total, point) {
+    var key = String(point.id);
+    if (seen[key]) return total;
+    seen[key] = true;
+    return total + 1;
+  }, 0);
+}
+
+function updateHeroSoundCount(total) {
+  var count = typeof total === 'number' ? total : countUniqueSoundPieces(SOUND_POINTS);
+  var el = document.getElementById('cover-sound-count');
+  if (el) el.textContent = count + ' piezas sonoras';
+}
+
+updateHeroSoundCount(BASE_SOUND_POINT_COUNT);
 
 function supabaseHeaders(extra) {
   var headers = {
@@ -1989,10 +2008,13 @@ async function loadApprovedTestimonies() {
     SOUND_POINTS = SOUND_POINTS.filter(function(p) { return p.source !== 'supabase'; }).concat(points);
     window.PUNTO_CERO_APPROVED_TESTIMONIES_ROWS = rows;
     window.PUNTO_CERO_APPROVED_TESTIMONIES = points;
+    updateHeroSoundCount();
     console.info('Testimonios aprobados cargados desde Supabase:', points.length, 'de', rows.length, 'fila(s).');
     return points;
   } catch (error) {
     console.warn('No se cargaron testimonios aprobados desde Supabase. Se conserva corpus estatico.', error);
+    SOUND_POINTS = SOUND_POINTS.filter(function(p) { return p.source !== 'supabase'; });
+    updateHeroSoundCount(BASE_SOUND_POINT_COUNT);
     window.PUNTO_CERO_APPROVED_TESTIMONIES = [];
     return [];
   }
