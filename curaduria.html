@@ -165,6 +165,35 @@
       gap: 12px;
     }
 
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0 18px;
+    }
+
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      min-width: 0;
+    }
+
+    .stat-card strong {
+      display: block;
+      color: var(--text);
+      font-size: 1.28rem;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .stat-card span {
+      color: var(--muted);
+      font-size: .76rem;
+      line-height: 1.25;
+    }
+
     .card {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -248,6 +277,7 @@
     @media (max-width: 760px) {
       .bar, main { width: min(100% - 20px, 1120px); }
       .login-grid, .detail-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr; }
       .toolbar, .card-head { flex-direction: column; align-items: stretch; }
       .actions button, .actions .link-button { width: 100%; }
     }
@@ -294,6 +324,22 @@
         </div>
       </div>
       <div id="work-status" class="status"></div>
+      <section class="panel" aria-labelledby="stats-title" style="margin-bottom:18px">
+        <div class="toolbar" style="margin:0 0 6px">
+          <div>
+            <h2 id="stats-title" style="margin:0;font-size:1rem">Estadísticas</h2>
+            <div class="small">Conteos agregados, sin datos personales.</div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><strong id="stat-visits-total">--</strong><span>Visitas totales</span></div>
+          <div class="stat-card"><strong id="stat-visits-30">--</strong><span>Visitas últimos 30 días</span></div>
+          <div class="stat-card"><strong id="stat-open-point">--</strong><span>Puntos abiertos</span></div>
+          <div class="stat-card"><strong id="stat-play-audio">--</strong><span>Audios reproducidos</span></div>
+          <div class="stat-card"><strong id="stat-submit-testimony">--</strong><span>Testimonios recibidos</span></div>
+        </div>
+        <div id="analytics-status" class="status"></div>
+      </section>
       <div id="cards" class="cards"></div>
     </section>
   </main>
@@ -313,6 +359,7 @@
     var workStatus = document.getElementById('work-status');
     var cards = document.getElementById('cards');
     var sessionLabel = document.getElementById('session-label');
+    var analyticsStatus = document.getElementById('analytics-status');
     var currentSession = null;
 
     function setStatus(el, message, type) {
@@ -432,6 +479,46 @@
       return text || fallback;
     }
 
+    function setStat(id, value) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = typeof value === 'number' ? value.toLocaleString('es-MX') : '--';
+    }
+
+    function parseCountHeader(response) {
+      var range = response.headers.get('content-range') || '';
+      var total = Number(range.split('/').pop());
+      return Number.isFinite(total) ? total : 0;
+    }
+
+    async function countAnalyticsEvents(filters) {
+      var response = await api('/rest/v1/analytics_events?select=id' + (filters || ''), {
+        method: 'HEAD',
+        headers: headers(currentSession, { Prefer: 'count=exact', Range: '0-0' })
+      }, currentSession);
+      if (!response.ok) {
+        throw new Error('No se pudieron leer estadisticas. Verifica que supabase/analytics_events.sql este aplicado.');
+      }
+      return parseCountHeader(response);
+    }
+
+    async function loadAnalyticsStats() {
+      setStatus(analyticsStatus, 'Cargando estadisticas...', '');
+      var since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      var totals = await Promise.all([
+        countAnalyticsEvents('&event_type=eq.visit_home'),
+        countAnalyticsEvents('&event_type=eq.visit_home&created_at=gte.' + encodeURIComponent(since)),
+        countAnalyticsEvents('&event_type=eq.open_point'),
+        countAnalyticsEvents('&event_type=eq.play_audio'),
+        countAnalyticsEvents('&event_type=eq.submit_testimony')
+      ]);
+      setStat('stat-visits-total', totals[0]);
+      setStat('stat-visits-30', totals[1]);
+      setStat('stat-open-point', totals[2]);
+      setStat('stat-play-audio', totals[3]);
+      setStat('stat-submit-testimony', totals[4]);
+      setStatus(analyticsStatus, 'Estadisticas actualizadas.', 'ok');
+    }
+
     async function loginWithPassword(email, password) {
       var response = await api('/auth/v1/token?grant_type=password', {
         method: 'POST',
@@ -537,6 +624,7 @@
     async function loadPending() {
       setStatus(workStatus, 'Cargando testimonios pendientes...', '');
       var jwtPayload = await checkAdminPolicy();
+      loadAnalyticsStats().catch(function(error) { setStatus(analyticsStatus, error.message, 'err'); });
       var rows = await fetchPendingRows();
       for (var i = 0; i < rows.length; i++) {
         try {

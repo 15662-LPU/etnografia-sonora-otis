@@ -2084,6 +2084,8 @@ var SOUND_POINTS = [
 var SUPABASE_URL = 'https://zopzhhqzuslyafznwhnc.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvcHpoaHF6dXNseWFmem53aG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzA2NTQsImV4cCI6MjA5NjYwNjY1NH0.KW9A72h4QI7sdkiUqz_jYqElmD_npt5PGctLczHM2D0';
 var SUPABASE_BUCKET = 'testimonios-audio';
+var ANALYTICS_SESSION_KEY = 'punto_cero_analytics_session';
+var analyticsMapVisitTracked = false;
 var BASE_SOUND_POINT_COUNT = countUniqueSoundPieces(SOUND_POINTS);
 
 function countUniqueSoundPieces(points) {
@@ -2117,6 +2119,45 @@ function supabaseFetch(path, options) {
   return fetch(SUPABASE_URL + path, Object.assign({
     headers: supabaseHeaders()
   }, options || {}));
+}
+
+function analyticsSessionId() {
+  try {
+    var existing = sessionStorage.getItem(ANALYTICS_SESSION_KEY);
+    if (existing) return existing;
+    var id = window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random().toString(16).slice(2);
+    sessionStorage.setItem(ANALYTICS_SESSION_KEY, id);
+    return id;
+  } catch (error) {
+    return 'session-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+}
+
+function trackAnalyticsEvent(eventType, pointId) {
+  if (!eventType || !SUPABASE_URL || !SUPABASE_ANON_KEY) return;
+  var payload = {
+    event_type: eventType,
+    point_id: pointId == null ? null : String(pointId),
+    session_id: analyticsSessionId(),
+    user_agent: navigator.userAgent ? navigator.userAgent.slice(0, 500) : null
+  };
+  fetch(SUPABASE_URL + '/rest/v1/analytics_events', {
+    method: 'POST',
+    headers: supabaseHeaders({
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal'
+    }),
+    body: JSON.stringify(payload),
+    keepalive: true
+  }).catch(function() {});
+}
+
+trackAnalyticsEvent('visit_home', null);
+
+function trackMapVisitOnce() {
+  if (analyticsMapVisitTracked) return;
+  analyticsMapVisitTracked = true;
+  trackAnalyticsEvent('visit_map', null);
 }
 
 function publicLocation(row) {
@@ -3150,6 +3191,7 @@ window.closeCurrentPopup = function() {
 
 function flyToPoint(p) {
   activePointId = p.id;
+  trackAnalyticsEvent('open_point', p.id);
   map.flyTo({ center: p.coords, zoom: Math.max(map.getZoom(), 11), speed: 1.2, curve: 1.4 });
   document.querySelectorAll('.point-item').forEach(function(el) {
     el.classList.toggle('active', String(el.dataset.id) === String(p.id));
@@ -3163,6 +3205,7 @@ function flyToPoint(p) {
     var sheet     = document.getElementById('audio-sheet');
     var sheetBody = document.getElementById('audio-sheet-body');
     sheetBody.innerHTML = buildMobileSheetHTML(p);
+    bindAudioAnalytics(sheetBody, p);
     sheet.classList.add('open');
     sheet.setAttribute('aria-hidden', 'false');
     sheetBody.scrollTop = 0;
@@ -3172,8 +3215,23 @@ function flyToPoint(p) {
       .setLngLat(p.coords)
       .setHTML(buildPopupHTML(p))
       .addTo(map);
+    bindAudioAnalytics(currentPopup.getElement(), p);
     currentPopup.on('close', function() { activePointId = null; currentPopup = null; });
   }
+}
+
+function bindAudioAnalytics(container, point) {
+  if (!container || !point) return;
+  container.querySelectorAll('audio').forEach(function(audioEl) {
+    audioEl.addEventListener('play', function() {
+      trackAnalyticsEvent('play_audio', point.id);
+    }, { once: true });
+  });
+  container.querySelectorAll('[data-analytics-audio]').forEach(function(link) {
+    link.addEventListener('click', function() {
+      trackAnalyticsEvent('play_audio', point.id);
+    }, { once: true });
+  });
 }
 
 /* Convierte "HH:MM:SS" o "MM:SS" a minutos totales */
@@ -3259,7 +3317,7 @@ function buildPopupHTML(p) {
           'allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" ' +
           'loading="lazy"></iframe>' +
       '</div>' +
-      '<a class="spotify-link" href="' + openUrl + '" target="_blank" rel="noopener noreferrer">' +
+      '<a class="spotify-link" data-analytics-audio="1" href="' + openUrl + '" target="_blank" rel="noopener noreferrer">' +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="#1db954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>' +
         ' Abrir en Spotify' +
       '</a>';
@@ -3268,7 +3326,7 @@ function buildPopupHTML(p) {
       audioBlock =
         '<div class="audio-wrap">' +
           '<audio controls preload="metadata" src="' + p.audio + '"></audio>' +
-          '<a class="spotify-link" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>' +
+          '<a class="spotify-link" data-analytics-audio="1" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>' +
         '</div>';
     } else {
       audioBlock =
@@ -3345,7 +3403,7 @@ function buildMobileSheetHTML(p) {
     var isLong = p.spotify.indexOf('/playlist/') !== -1 || p.spotify.indexOf('/show/') !== -1;
     var h = isLong ? 232 : 152;
     listenButton =
-      '<a class="mobile-listen-primary" href="' + openUrl + '" target="_blank" rel="noopener noreferrer">' +
+      '<a class="mobile-listen-primary" data-analytics-audio="1" href="' + openUrl + '" target="_blank" rel="noopener noreferrer">' +
         '&#9654; Escuchar en Spotify' +
       '</a>';
     player =
@@ -3356,7 +3414,7 @@ function buildMobileSheetHTML(p) {
       '</div>';
   } else if (p.audio) {
     listenButton =
-      '<a class="mobile-listen-primary" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">' +
+      '<a class="mobile-listen-primary" data-analytics-audio="1" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">' +
         '&#9654; Abrir audio' +
       '</a>';
     if (p.audio_kind === 'file') {
@@ -3635,6 +3693,7 @@ document.getElementById('modal-save').addEventListener('click', function() {
 
   /* ── ENTRADA AL MAPA ─────────────────────────────────────── */
   document.getElementById('cover-enter').addEventListener('click', function () {
+    trackMapVisitOnce();
     stopBlowing();
     splash.classList.add('exiting');
     var fade = setInterval(function () {
