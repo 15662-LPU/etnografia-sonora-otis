@@ -553,7 +553,7 @@
             </div>
           </div>
 
-          <div class="grid-3">
+          <div class="grid-2">
             <div>
               <label for="interview-date">Fecha del relato o grabación</label>
               <input id="interview-date" name="interview-date" type="date" required />
@@ -564,19 +564,47 @@
               <div class="hint">Si estás llenando esto por tu cuenta, escribe tu nombre o seudónimo.</div>
             </div>
             <div>
-              <label for="testimony-type">¿Qué tipo de historia es?</label>
+              <label for="testimony-type">Tipo de relato</label>
               <select id="testimony-type" name="testimony-type" required>
-                <option value="comunitario">Comunitaria</option>
+                <option value="personal">Personal</option>
                 <option value="familiar">Familiar</option>
-                <option value="productor_rural">Productor rural</option>
-                <option value="pescador">Pescador</option>
-                <option value="comerciante">Comerciante</option>
-                <option value="estudiante">Estudiante</option>
-                <option value="servidor_publico">Servidor público</option>
-                <option value="otro">Otra</option>
+                <option value="comunitario">Comunitario</option>
+                <option value="institucional">Institucional</option>
               </select>
+              <div class="hint">Selecciona la naturaleza principal de tu relato.</div>
+            </div>
+            <div>
+              <label for="participant-profile">¿Desde qué experiencia participas?</label>
+              <select id="participant-profile" name="participant-profile" required>
+                <option value="habitante_comunidad">Habitante de la comunidad</option>
+                <option value="estudiante">Estudiante</option>
+                <option value="docente">Docente</option>
+                <option value="medico">Médico</option>
+                <option value="enfermera">Enfermera</option>
+                <option value="trabajador_social">Trabajador(a) social</option>
+                <option value="pescador">Pescador(a)</option>
+                <option value="productor_rural">Productor(a) rural</option>
+                <option value="comerciante">Comerciante</option>
+                <option value="servidor_publico">Servidor(a) público</option>
+                <option value="proteccion_civil">Protección Civil</option>
+                <option value="bombero">Bombero(a)</option>
+                <option value="rescatista_voluntario">Rescatista o voluntario(a)</option>
+                <option value="militar">Militar</option>
+                <option value="policia">Policía</option>
+                <option value="periodista">Periodista</option>
+                <option value="servicios_turisticos">Prestador(a) de servicios turísticos</option>
+                <option value="hotelero">Hotelero(a)</option>
+                <option value="restaurantero">Restaurantero(a)</option>
+                <option value="turista">Turista</option>
+                <option value="investigador">Investigador(a)</option>
+                <option value="lider_comunitario">Líder comunitario</option>
+                <option value="persona_evacuada_desplazada">Persona evacuada o desplazada</option>
+                <option value="otra">Otra</option>
+              </select>
+              <div class="hint">Selecciona el rol o experiencia desde la cual viviste el Huracán Otis.</div>
             </div>
           </div>
+          <div class="support-note">Esta información nos ayuda a comprender cómo distintos sectores de la sociedad vivieron y recuerdan el Huracán Otis.</div>
         </div>
 
         <details class="support-panel">
@@ -941,6 +969,8 @@
         place_label: submission.places.story_about[0].label,
         description: value('description') || null,
         testimony_type: value('testimony-type') || null,
+        tipo_relato: value('testimony-type') || null,
+        perfil_participante: value('participant-profile') || null,
         latitude: lat,
         longitude: lng,
         coordinate_type: value('coordinate-type') || 'approximate',
@@ -1020,6 +1050,8 @@
           title: null,
           description: value('description') || null,
           testimony_type: value('testimony-type') || null,
+          tipo_relato: value('testimony-type') || null,
+          perfil_participante: value('participant-profile') || null,
           community: value('community') || null,
           locality: value('locality') || null,
           municipality: value('municipality') || null,
