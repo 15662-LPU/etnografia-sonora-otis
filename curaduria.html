@@ -266,6 +266,31 @@
       accent-color: #1f6feb;
     }
 
+    .audio-debug {
+      border: 1px solid rgba(88, 166, 255, .35);
+      background: rgba(88, 166, 255, .08);
+      border-radius: 6px;
+      padding: 10px;
+      margin: 10px 0 12px;
+      color: #c9d1d9;
+      font-size: .78rem;
+    }
+
+    .audio-debug strong {
+      display: block;
+      color: var(--blue);
+      margin-bottom: 6px;
+      font-size: .82rem;
+    }
+
+    .audio-debug pre {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      line-height: 1.45;
+    }
+
     .empty {
       border: 1px dashed var(--line);
       border-radius: 8px;
@@ -548,17 +573,206 @@
       return encodeURIComponent(path).replace(/%2F/g, '/');
     }
 
-    async function signedAudioUrl(audioPath) {
+    function normalizeAudioPath(path) {
+      return String(path || '').replace(/^\/+/, '');
+    }
+
+    function normalizeSignedStorageUrl(signedUrl) {
+      if (!signedUrl) return null;
+      if (/^https?:\/\//i.test(signedUrl)) return signedUrl;
+      if (signedUrl.indexOf('/storage/v1/') === 0) return SUPABASE_URL + signedUrl;
+      if (signedUrl.indexOf('/object/') === 0) return SUPABASE_URL + '/storage/v1' + signedUrl;
+      return SUPABASE_URL + '/storage/v1/' + signedUrl.replace(/^\/+/, '');
+    }
+
+    function audioDiagnosticsEnabled() {
+      try {
+        return new URLSearchParams(window.location.search).has('audio_debug');
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function signedUrlPreview(signedUrl) {
+      if (!signedUrl) return null;
+      return signedUrl.slice(0, 120) + (signedUrl.length > 120 ? '...' : '');
+    }
+
+    function classifyAudioDiagnostic(debug) {
+      var status = debug && debug.fetch ? debug.fetch.status : null;
+      var hasAudioError = debug && debug.audio && debug.audio.error;
+      if (status === 404) return 'ruta mal construida';
+      if (status === 401 || status === 403) return 'permisos/RLS';
+      if (status === 200 && hasAudioError) return 'URL valida, falla el reproductor';
+      if (status === 200) return 'URL valida';
+      if (debug && debug.sign && debug.sign.error) return 'error al firmar URL';
+      if (debug && debug.fetch && debug.fetch.error) return 'error en fetch(signedUrl)';
+      return 'pendiente';
+    }
+
+    function audioDebugText(debug) {
+      debug = debug || {};
+      var sign = debug.sign || {};
+      var fetchInfo = debug.fetch || {};
+      var audio = debug.audio || {};
+      return [
+        'diagnostico: ' + classifyAudioDiagnostic(debug),
+        'audio_bucket: ' + (debug.audio_bucket || ''),
+        'audio_path: ' + (debug.audio_path || ''),
+        debug.normalized_audio_path && debug.normalized_audio_path !== debug.audio_path
+          ? 'audio_path_normalized: ' + debug.normalized_audio_path
+          : null,
+        'createSignedUrl: ' + (sign.status || 'pending'),
+        sign.error ? 'createSignedUrl_error: ' + sign.error : null,
+        'signedURL_normalizada: ' + (signedUrlPreview(sign.normalized_signed_url) || ''),
+        'fetch_status: ' + (fetchInfo.status == null ? '' : fetchInfo.status),
+        'fetch_content_type: ' + (fetchInfo.content_type || ''),
+        'fetch_content_length: ' + (fetchInfo.content_length || ''),
+        fetchInfo.error ? 'fetch_error: ' + fetchInfo.error : null,
+        'audio_loadedmetadata: ' + (audio.loadedmetadata ? 'true' : 'false'),
+        'audio_canplay: ' + (audio.canplay ? 'true' : 'false'),
+        'audio_error: ' + (audio.error ? 'true' : 'false'),
+        'networkState: ' + (audio.networkState == null ? '' : audio.networkState),
+        'readyState: ' + (audio.readyState == null ? '' : audio.readyState),
+        'audio.error.code: ' + (audio.error_code == null ? '' : audio.error_code),
+        audio.play_error ? 'play_error: ' + audio.play_error : null
+      ].filter(function(line) { return line != null; }).join('\n');
+    }
+
+    function renderAudioDebugPanel(id, debug) {
+      if (!audioDiagnosticsEnabled()) return;
+      var panelWrap = Array.prototype.find.call(document.querySelectorAll('[data-audio-debug-for]'), function(el) {
+        return el.getAttribute('data-audio-debug-for') === String(id);
+      });
+      var panel = panelWrap ? panelWrap.querySelector('pre') : null;
+      if (panel) panel.textContent = audioDebugText(debug);
+    }
+
+    function findAudioElement(container, id) {
+      return Array.prototype.find.call(container.querySelectorAll('audio[data-audio-id]'), function(el) {
+        return el.getAttribute('data-audio-id') === String(id);
+      });
+    }
+
+    async function probeSignedAudioUrl(debug) {
+      debug.fetch = debug.fetch || {};
+      if (!debug.sign || !debug.sign.normalized_signed_url) {
+        debug.fetch = { error: 'Sin signed URL para probar' };
+        return debug.fetch;
+      }
+      try {
+        var response = await fetch(debug.sign.normalized_signed_url);
+        if (response.body && response.body.cancel) response.body.cancel();
+        debug.fetch = {
+          status: response.status,
+          content_type: response.headers.get('content-type') || '',
+          content_length: response.headers.get('content-length') || ''
+        };
+      } catch (error) {
+        debug.fetch = { error: error.message };
+      }
+      return debug.fetch;
+    }
+
+    function updateAudioEventDebug(audioEl, eventName) {
+      var id = audioEl.getAttribute('data-audio-id');
+      var row = window.PUNTO_CERO_AUDIO_DEBUG_ROWS && window.PUNTO_CERO_AUDIO_DEBUG_ROWS[id];
+      if (!row) return;
+      row._audio_debug.audio = row._audio_debug.audio || {};
+      row._audio_debug.audio[eventName] = true;
+      row._audio_debug.audio.networkState = audioEl.networkState;
+      row._audio_debug.audio.readyState = audioEl.readyState;
+      if (audioEl.error) row._audio_debug.audio.error_code = audioEl.error.code;
+      renderAudioDebugPanel(id, row._audio_debug);
+    }
+
+    function bindAudioDiagnostics(container) {
+      if (!container) return;
+      container.querySelectorAll('audio').forEach(function(audioEl) {
+        audioEl.addEventListener('loadedmetadata', function() {
+          updateAudioEventDebug(audioEl, 'loadedmetadata');
+        });
+        audioEl.addEventListener('canplay', function() {
+          updateAudioEventDebug(audioEl, 'canplay');
+        });
+        audioEl.addEventListener('error', function() {
+          updateAudioEventDebug(audioEl, 'error');
+        });
+      });
+      container.querySelectorAll('[data-audio-test]').forEach(function(button) {
+        button.addEventListener('click', async function() {
+          var id = button.getAttribute('data-audio-test');
+          var row = window.PUNTO_CERO_AUDIO_DEBUG_ROWS && window.PUNTO_CERO_AUDIO_DEBUG_ROWS[id];
+          var audioEl = findAudioElement(container, id);
+          if (!row) return;
+          button.disabled = true;
+          button.textContent = 'Probando...';
+          await probeSignedAudioUrl(row._audio_debug);
+          if (audioEl) {
+            row._audio_debug.audio = row._audio_debug.audio || {};
+            row._audio_debug.audio.networkState = audioEl.networkState;
+            row._audio_debug.audio.readyState = audioEl.readyState;
+            try {
+              audioEl.load();
+              var playResult = audioEl.play();
+              if (playResult && typeof playResult.catch === 'function') {
+                await playResult.catch(function(error) {
+                  row._audio_debug.audio.play_error = error.message;
+                });
+              }
+            } catch (error) {
+              row._audio_debug.audio.play_error = error.message;
+            }
+            row._audio_debug.audio.networkState = audioEl.networkState;
+            row._audio_debug.audio.readyState = audioEl.readyState;
+            if (audioEl.error) {
+              row._audio_debug.audio.error = true;
+              row._audio_debug.audio.error_code = audioEl.error.code;
+            }
+          }
+          renderAudioDebugPanel(id, row._audio_debug);
+          button.disabled = false;
+          button.textContent = 'Probar audio';
+        });
+      });
+    }
+
+    async function signedAudioUrl(audioBucket, audioPath, debug) {
+      if (arguments.length === 1) {
+        audioPath = audioBucket;
+        audioBucket = SUPABASE_BUCKET;
+      }
       if (!audioPath) return null;
-      var response = await api('/storage/v1/object/sign/' + SUPABASE_BUCKET + '/' + encodedStoragePath(audioPath), {
+      var bucket = audioBucket || SUPABASE_BUCKET;
+      var normalizedPath = normalizeAudioPath(audioPath);
+      if (debug) {
+        debug.audio_bucket = bucket;
+        debug.audio_path = audioPath;
+        debug.normalized_audio_path = normalizedPath;
+      }
+      var response = await api('/storage/v1/object/sign/' + encodeURIComponent(bucket) + '/' + encodedStoragePath(normalizedPath), {
         method: 'POST',
         headers: headers(currentSession, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ expiresIn: 3600 })
       }, currentSession);
       var data = await response.json().catch(function() { return {}; });
-      if (!response.ok) throw new Error(data.message || data.error || 'No se pudo firmar el audio');
-      if (!data.signedURL) return null;
-      return data.signedURL.indexOf('http') === 0 ? data.signedURL : SUPABASE_URL + data.signedURL;
+      if (!response.ok) {
+        if (debug) debug.sign = { status: 'error', error: data.message || data.error || 'No se pudo firmar el audio' };
+        throw new Error(data.message || data.error || 'No se pudo firmar el audio');
+      }
+      if (!data.signedURL) {
+        if (debug) debug.sign = { status: 'success', error: 'Respuesta sin signedURL' };
+        return null;
+      }
+      var normalizedSignedUrl = normalizeSignedStorageUrl(data.signedURL);
+      if (debug) {
+        debug.sign = {
+          status: 'success',
+          raw_signed_url: data.signedURL,
+          normalized_signed_url: normalizedSignedUrl
+        };
+      }
+      return normalizedSignedUrl;
     }
 
     async function fetchPendingRows() {
@@ -579,6 +793,14 @@
     function coordinates(row) {
       if (row.latitude == null || row.longitude == null) return 'No registradas';
       return row.latitude + ', ' + row.longitude + ' (' + (row.coordinate_type || 'sin tipo') + ')';
+    }
+
+    function audioDebugPanelHTML(row) {
+      if (!audioDiagnosticsEnabled()) return '';
+      return '<div class="audio-debug" data-audio-debug-for="' + escapeHtml(row.id) + '">' +
+        '<strong>Diagnostico de audio</strong>' +
+        '<pre>' + escapeHtml(audioDebugText(row._audio_debug)) + '</pre>' +
+      '</div>';
     }
 
     function renderRows(rows) {
@@ -608,8 +830,12 @@
           '</div>' +
           '<div class="description">' + escapeHtml(row.description || 'Sin descripcion registrada.') + '</div>' +
           (row._signed_url
-            ? '<audio controls preload="metadata" src="' + escapeHtml(row._signed_url) + '"></audio>'
+            ? '<audio controls preload="metadata" data-audio-id="' + escapeHtml(row.id) + '" src="' + escapeHtml(row._signed_url) + '"></audio>'
             : '<div class="small">Audio no disponible para reproduccion.</div>') +
+          (audioDiagnosticsEnabled()
+            ? '<div class="actions" style="margin-top:6px"><button type="button" data-audio-test="' + escapeHtml(row.id) + '">Probar audio</button></div>'
+            : '') +
+          audioDebugPanelHTML(row) +
           '<label for="notes-' + escapeHtml(row.id) + '">Notas de curaduria</label>' +
           '<textarea id="notes-' + escapeHtml(row.id) + '" data-notes-for="' + escapeHtml(row.id) + '" placeholder="Observaciones internas">' + escapeHtml(row.admin_notes || row.curatorial_notes || '') + '</textarea>' +
           '<div class="actions">' +
@@ -619,6 +845,7 @@
           '</div>';
         cards.appendChild(card);
       });
+      bindAudioDiagnostics(cards);
     }
 
     async function loadPending() {
@@ -626,10 +853,25 @@
       var jwtPayload = await checkAdminPolicy();
       loadAnalyticsStats().catch(function(error) { setStatus(analyticsStatus, error.message, 'err'); });
       var rows = await fetchPendingRows();
+      window.PUNTO_CERO_AUDIO_DEBUG_ROWS = {};
       for (var i = 0; i < rows.length; i++) {
+        rows[i]._audio_debug = {
+          audio_bucket: rows[i].audio_bucket || SUPABASE_BUCKET,
+          audio_path: rows[i].audio_path || '',
+          normalized_audio_path: normalizeAudioPath(rows[i].audio_path),
+          sign: { status: 'pending' },
+          fetch: {},
+          audio: {}
+        };
+        window.PUNTO_CERO_AUDIO_DEBUG_ROWS[String(rows[i].id)] = rows[i];
         try {
-          rows[i]._signed_url = await signedAudioUrl(rows[i].audio_path);
+          rows[i]._signed_url = await signedAudioUrl(rows[i].audio_bucket, rows[i].audio_path, rows[i]._audio_debug);
+          if (audioDiagnosticsEnabled()) await probeSignedAudioUrl(rows[i]._audio_debug);
         } catch (error) {
+          console.warn('No se pudo generar signed URL para testimonio pendiente', rows[i].id, error);
+          rows[i]._audio_debug.sign = rows[i]._audio_debug.sign || {};
+          rows[i]._audio_debug.sign.status = 'error';
+          rows[i]._audio_debug.sign.error = error.message;
           rows[i]._signed_url = null;
         }
       }

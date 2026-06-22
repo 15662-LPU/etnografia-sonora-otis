@@ -2282,6 +2282,55 @@ function supabaseFetch(path, options) {
   }, options || {}));
 }
 
+function encodedStoragePath(path) {
+  return encodeURIComponent(path).replace(/%2F/g, '/');
+}
+
+function normalizeAudioPath(path) {
+  return String(path || '').replace(/^\/+/, '');
+}
+
+function normalizeSignedStorageUrl(signedUrl) {
+  if (!signedUrl) return null;
+  if (/^https?:\/\//i.test(signedUrl)) return signedUrl;
+  if (signedUrl.indexOf('/storage/v1/') === 0) return SUPABASE_URL + signedUrl;
+  if (signedUrl.indexOf('/object/') === 0) return SUPABASE_URL + '/storage/v1' + signedUrl;
+  return SUPABASE_URL + '/storage/v1/' + signedUrl.replace(/^\/+/, '');
+}
+
+function audioDiagnosticsEnabled() {
+  try {
+    return new URLSearchParams(window.location.search).has('audio_debug');
+  } catch (error) {
+    return false;
+  }
+}
+
+function logSignedAudioDiagnostic(context, signedUrl) {
+  if (!audioDiagnosticsEnabled() || !signedUrl || !window.console) return;
+  console.info('Punto Cero audio signed URL', Object.assign({}, context, {
+    signed_url_prefix: signedUrl.slice(0, 96),
+    signed_url_length: signedUrl.length
+  }));
+}
+
+async function reportAudioFetchFailure(context, signedUrl) {
+  if (!signedUrl || !window.fetch || !window.console) return;
+  try {
+    var response = await fetch(signedUrl, { method: 'HEAD' });
+    console.warn('Punto Cero audio fetch diagnostic', Object.assign({}, context, {
+      status: response.status,
+      content_type: response.headers.get('content-type'),
+      signed_url_prefix: signedUrl.slice(0, 96)
+    }));
+  } catch (error) {
+    console.warn('Punto Cero audio fetch diagnostic failed', Object.assign({}, context, {
+      message: error.message,
+      signed_url_prefix: signedUrl.slice(0, 96)
+    }));
+  }
+}
+
 function analyticsSessionId() {
   try {
     var existing = sessionStorage.getItem(ANALYTICS_SESSION_KEY);
@@ -2350,9 +2399,14 @@ function approvedRowToPoint(row, signedUrl) {
   };
 }
 
-async function createSignedAudioUrl(audioPath) {
+async function createSignedAudioUrl(audioBucket, audioPath) {
+  if (arguments.length === 1) {
+    audioPath = audioBucket;
+    audioBucket = SUPABASE_BUCKET;
+  }
   if (!audioPath) return null;
-  var response = await supabaseFetch('/storage/v1/object/sign/' + SUPABASE_BUCKET + '/' + encodeURIComponent(audioPath).replace(/%2F/g, '/'), {
+  var bucket = audioBucket || SUPABASE_BUCKET;
+  var response = await supabaseFetch('/storage/v1/object/sign/' + encodeURIComponent(bucket) + '/' + encodedStoragePath(normalizeAudioPath(audioPath)), {
     method: 'POST',
     headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ expiresIn: 3600 })
@@ -2360,7 +2414,7 @@ async function createSignedAudioUrl(audioPath) {
   if (!response.ok) throw new Error('No se pudo firmar audio aprobado');
   var data = await response.json();
   if (!data.signedURL) return null;
-  return data.signedURL.indexOf('http') === 0 ? data.signedURL : SUPABASE_URL + data.signedURL;
+  return normalizeSignedStorageUrl(data.signedURL);
 }
 
 async function loadApprovedTestimonies() {
@@ -2374,7 +2428,16 @@ async function loadApprovedTestimonies() {
     for (var i = 0; i < rows.length; i++) {
       var signedUrl = null;
       try {
-        signedUrl = await createSignedAudioUrl(rows[i].audio_path);
+        signedUrl = await createSignedAudioUrl(rows[i].audio_bucket, rows[i].audio_path);
+        logSignedAudioDiagnostic({
+          surface: 'mapa_publico',
+          id: rows[i].id,
+          status: rows[i].status,
+          audio_bucket: rows[i].audio_bucket || SUPABASE_BUCKET,
+          audio_path: rows[i].audio_path,
+          audio_mime_type: rows[i].audio_mime_type,
+          audio_original_filename: rows[i].audio_original_filename
+        }, signedUrl);
       } catch (audioError) {
         console.warn('No se pudo generar signed URL para testimonio aprobado', rows[i].id, audioError);
         signedUrl = null;
@@ -3595,6 +3658,13 @@ function bindAudioAnalytics(container, point) {
   container.querySelectorAll('audio').forEach(function(audioEl) {
     audioEl.addEventListener('play', function() {
       trackAnalyticsEvent('play_audio', point.id);
+    }, { once: true });
+    audioEl.addEventListener('error', function() {
+      reportAudioFetchFailure({
+        surface: 'mapa_publico',
+        point_id: point.id,
+        approved_submission_id: point.approved_submission_id || null
+      }, audioEl.currentSrc || audioEl.src);
     }, { once: true });
   });
   container.querySelectorAll('[data-analytics-audio]').forEach(function(link) {
