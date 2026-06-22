@@ -1157,8 +1157,8 @@
       #cover-splash {
         inset: 0 0 auto;
         min-height: 0;
-        height: 58vh;
-        height: 58dvh;
+        height: 66vh;
+        height: 66dvh;
         border-radius: 0 0 18px 18px;
         box-shadow: 0 12px 36px rgba(0,0,0,.7);
       }
@@ -1179,6 +1179,7 @@
         max-width: none;
         justify-content: flex-start;
         padding: calc(18px + env(safe-area-inset-top)) 18px 16px;
+        animation: none;
       }
       .cover-eyebrow {
         margin-bottom: 9px;
@@ -1202,7 +1203,7 @@
         margin-bottom: 10px;
       }
       .cover-title .ct-kicker {
-        font-size: clamp(2rem, 11vw, 2.9rem);
+        font-size: clamp(1.9rem, 10vw, 2.65rem);
         line-height: .95;
         letter-spacing: -.02em;
       }
@@ -1210,7 +1211,7 @@
         display: none;
       }
       .cover-title .ct-sub {
-        font-size: clamp(1.18rem, 6.5vw, 1.85rem);
+        font-size: clamp(1.12rem, 6vw, 1.72rem);
         line-height: 1.05;
         letter-spacing: 0;
       }
@@ -1260,16 +1261,36 @@
         font-size: .8rem;
       }
       .cover-footer {
-        display: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-top: 2px;
+        color: transparent;
+        font-size: 0;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+      .cover-footer a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 10px;
+        border: 1px solid rgba(255,255,255,.32);
+        border-radius: 999px;
+        background: rgba(13,17,23,.62);
+        color: #f0f6fc;
+        font-size: .72rem;
+        font-weight: 800;
+        text-decoration: none;
+      }
+      .cover-footer a:hover {
+        color: #f0f6fc;
+        border-color: rgba(88,166,255,.38);
       }
       #cover-sound-btn {
-        right: 14px;
-        bottom: 12px;
-        padding: 7px 10px;
-        font-size: 0;
-      }
-      #cover-sound-btn .snd-icon {
-        font-size: 1rem;
+        display: none;
       }
     }
   </style>
