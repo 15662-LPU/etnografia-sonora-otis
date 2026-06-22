@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metodolog&iacute;a y &eacute;tica del archivo | Punto Cero Acapulco</title>
+  <meta name="description" content="Metodolog&iacute;a, &eacute;tica y curadur&iacute;a de Punto Cero, archivo comunitario de memoria sonora sobre el Hurac&aacute;n Otis en Acapulco." />
+  <style>
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #f6f8f5;
+      color: #0f172a;
+      line-height: 1.55;
+    }
+    a { color: inherit; }
+    header {
+      background: #07111c;
+      color: #f8fafc;
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+    }
+    .topbar {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(125, 211, 252, .35);
+      background: radial-gradient(circle at 35% 30%, #1f6feb, #07111c 68%);
+      color: #dff6ff;
+      font-weight: 900;
+    }
+    .brand strong {
+      display: block;
+      color: #fff;
+      font-size: 1.05rem;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    .brand span {
+      color: #cbd5e1;
+      font-size: .78rem;
+      line-height: 1.25;
+    }
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .top-actions a, .button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 9px 14px;
+      border: 1px solid #d7ded7;
+      border-radius: 7px;
+      background: #fff;
+      color: #0f172a;
+      font-size: .82rem;
+      font-weight: 800;
+      text-decoration: none;
+      transition: background .15s, border-color .15s, transform .15s;
+    }
+    .top-actions a {
+      border-color: rgba(255, 255, 255, .12);
+      background: rgba(255, 255, 255, .08);
+      color: #f8fafc;
+    }
+    .top-actions a:hover, .button-link:hover {
+      transform: translateY(-1px);
+      border-color: #0f5f62;
+    }
+    .button-link.primary {
+      background: #064d50;
+      border-color: #064d50;
+      color: #fff;
+    }
+    .page-nav-wrap {
+      background: rgba(255, 255, 255, .94);
+      border-bottom: 1px solid #e2e8e0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+    }
+    .page-nav {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 10px 20px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .page-nav a {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      color: #0f172a;
+      font-size: .8rem;
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .page-nav a:hover {
+      background: #eaf1ec;
+      color: #064d50;
+    }
+    main {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 26px 20px 42px;
+      display: grid;
+      gap: 18px;
+    }
+    .hero {
+      min-height: 250px;
+      padding: 26px;
+      border: 1px solid #d8dfd6;
+      border-radius: 14px;
+      background:
+        linear-gradient(90deg, rgba(250, 250, 244, .98) 0%, rgba(250, 250, 244, .94) 42%, rgba(250, 250, 244, .36) 66%),
+        url("portada de fondo.png") right center / cover no-repeat;
+      box-shadow: 0 18px 50px rgba(15, 23, 42, .08);
+      display: grid;
+      align-content: center;
+      gap: 14px;
+    }
+    .eyebrow {
+      color: #064d50;
+      font-size: .74rem;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 {
+      max-width: 610px;
+      color: #0f172a;
+      font-size: 2.15rem;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+    .lead {
+      max-width: 560px;
+      color: #1f2937;
+      font-size: .98rem;
+      line-height: 1.65;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+    .section {
+      border: 1px solid #dfe5dd;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, .04);
+      overflow: hidden;
+      scroll-margin-top: 76px;
+    }
+    .section.compact { padding: 18px; }
+    .section-head {
+      padding: 18px 18px 8px;
+      display: grid;
+      gap: 3px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #0f172a;
+      font-size: 1.15rem;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    .section-sub {
+      color: #52616b;
+      font-size: .85rem;
+    }
+    .section-body {
+      padding: 10px 18px 18px;
+      display: grid;
+      gap: 14px;
+    }
+    .icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      background: #e5f1f0;
+      color: #0f5f62;
+      font-size: 1rem;
+      font-weight: 900;
+    }
+    .icon.green { background: #e9f5e8; color: #3d8b4e; }
+    .icon.blue { background: #e7f0fb; color: #2775c9; }
+    .icon.gold { background: #f8efd8; color: #b7791f; }
+    .intro-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(260px, .95fr);
+      gap: 18px;
+      align-items: center;
+    }
+    .intro-text {
+      color: #1f2937;
+      font-size: .9rem;
+      line-height: 1.65;
+      max-width: 620px;
+    }
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .mini-card {
+      min-height: 128px;
+      border-left: 1px solid #dfe5dd;
+      padding: 8px 10px;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 7px;
+      text-align: center;
+    }
+    .mini-card strong {
+      color: #0f172a;
+      font-size: .78rem;
+      line-height: 1.25;
+    }
+    .mini-card span:last-child {
+      color: #52616b;
+      font-size: .72rem;
+      line-height: 1.35;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .info-card, .method-card, .concept-card, .limit-card, .withdrawal-card {
+      border: 1px solid #e3e8e1;
+      border-radius: 12px;
+      background: #fbfcfa;
+      padding: 16px;
+      display: grid;
+      gap: 9px;
+    }
+    .info-card h3, .method-card h3, .concept-card h3, .limit-card h3, .withdrawal-card h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #0f172a;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+    .info-card p, .method-card p, .concept-card p, .limit-card li, .withdrawal-card p {
+      color: #1f2937;
+      font-size: .86rem;
+      line-height: 1.58;
+    }
+    .quote-box {
+      display: inline-block;
+      max-width: 390px;
+      padding: 13px 16px;
+      border-radius: 12px;
+      background: #f0f5f0;
+      color: #064d50;
+      font-size: .96rem;
+      font-weight: 900;
+      line-height: 1.35;
+    }
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .concept-card {
+      min-height: 170px;
+      align-content: start;
+      justify-items: center;
+      text-align: center;
+      background: linear-gradient(145deg, #fbfcfa, #f2f6f2);
+    }
+    .concept-card:nth-child(2) { background: linear-gradient(145deg, #fbfcfa, #eef7ed); }
+    .concept-card:nth-child(3) { background: linear-gradient(145deg, #fbfcfa, #edf4fb); }
+    .concept-card:nth-child(4) { background: linear-gradient(145deg, #fbfcfa, #f6effa); }
+    .concept-card:nth-child(5) { background: linear-gradient(145deg, #fbfcfa, #fbf3e6); }
+    .concept-card:nth-child(6) { background: linear-gradient(145deg, #fbfcfa, #edf7f6); }
+    .concept-card h3 {
+      display: block;
+      font-size: .82rem;
+      text-align: center;
+    }
+    .concept-card p {
+      color: #26323b;
+      font-size: .76rem;
+      line-height: 1.45;
+    }
+    .method-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .method-card {
+      min-height: 215px;
+      align-content: start;
+      text-align: center;
+      background: #fbfcfa;
+    }
+    .visual-strip {
+      min-height: 78px;
+      border-radius: 10px;
+      background:
+        linear-gradient(135deg, rgba(15, 95, 98, .12), rgba(39, 117, 201, .08)),
+        #eef4ef;
+      display: grid;
+      place-items: center;
+      color: #0f5f62;
+      font-size: 2rem;
+      font-weight: 900;
+    }
+    .visual-strip.map {
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.34), rgba(255,255,255,.16)),
+        url("portada de fondo.png") center / cover no-repeat;
+      color: #fff;
+      text-shadow: 0 2px 12px rgba(0,0,0,.34);
+    }
+    .ethics-process {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      align-items: start;
+      gap: 10px;
+      padding: 10px 0 2px;
+      position: relative;
+    }
+    .ethics-process::before {
+      content: "";
+      position: absolute;
+      left: 9%;
+      right: 9%;
+      top: 33px;
+      border-top: 2px dashed #9ab7ad;
+    }
+    .ethics-step {
+      position: relative;
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+      text-align: center;
+      z-index: 1;
+    }
+    .step-badge {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #2c6f60;
+      color: #fff;
+      border: 6px solid #fff;
+      box-shadow: 0 0 0 1px #cbd8d1;
+      font-weight: 900;
+    }
+    .ethics-step strong {
+      max-width: 130px;
+      color: #0f172a;
+      font-size: .78rem;
+      line-height: 1.35;
+    }
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .limit-card {
+      background: #fffdf7;
+      border-color: #ead9a2;
+    }
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 7px;
+    }
+    .limit-card li {
+      color: #1f2937;
+      font-size: .84rem;
+    }
+    .withdrawal-card {
+      background: #fbfcfa;
+    }
+    .withdrawal-card .button-link {
+      justify-self: start;
+      background: #f8fafc;
+    }
+    .closing {
+      min-height: 92px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      border: 1px solid #dfe5dd;
+      border-radius: 14px;
+      padding: 18px 24px;
+      background:
+        linear-gradient(90deg, rgba(245, 247, 234, .96), rgba(232, 241, 225, .88)),
+        #f3f6ea;
+    }
+    .plant {
+      color: #75a15f;
+      font-size: 2.6rem;
+      line-height: 1;
+    }
+    .people {
+      color: #a76644;
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+    .closing h2 {
+      color: #0f172a;
+      font-size: 1.05rem;
+      line-height: 1.25;
+      margin-bottom: 4px;
+    }
+    .closing p {
+      color: #334155;
+      font-size: .86rem;
+      line-height: 1.45;
+    }
+    footer {
+      color: #64748b;
+      font-size: .76rem;
+      padding: 12px 16px 28px;
+      text-align: center;
+    }
+    @media (max-width: 980px) {
+      .concept-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .mini-card { border-left: none; border-top: 1px solid #dfe5dd; }
+    }
+    @media (max-width: 760px) {
+      .topbar { padding: 14px 12px; }
+      .brand { grid-template-columns: 36px minmax(0, 1fr); }
+      .brand-mark { width: 36px; height: 36px; border-radius: 12px; }
+      .top-actions { width: 100%; }
+      .top-actions a { flex: 1; }
+      .page-nav { padding: 8px 10px; }
+      main { padding: 14px 10px 32px; gap: 14px; }
+      .hero {
+        min-height: auto;
+        padding: 18px;
+        background:
+          linear-gradient(180deg, rgba(250, 250, 244, .98), rgba(250, 250, 244, .90)),
+          url("portada de fondo.png") center / cover no-repeat;
+      }
+      h1 { font-size: 1.62rem; }
+      .lead { font-size: .91rem; }
+      .hero-actions .button-link { width: 100%; }
+      .section { scroll-margin-top: 68px; }
+      .section.compact,
+      .section-head,
+      .section-body { padding: 14px; }
+      .section-head { padding-bottom: 4px; }
+      .intro-layout,
+      .two-col,
+      .method-grid,
+      .bottom-grid,
+      .closing { grid-template-columns: 1fr; }
+      .concept-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .concept-card { min-height: 150px; padding: 13px; }
+      .method-card { min-height: 0; }
+      .ethics-process {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .ethics-process::before { display: none; }
+      .ethics-step {
+        grid-template-columns: 46px minmax(0, 1fr);
+        justify-items: start;
+        text-align: left;
+      }
+      .ethics-step strong { max-width: none; }
+      .closing { text-align: center; justify-items: center; padding: 16px; }
+      .people { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">PC</div>
+        <div>
+          <strong>Punto Cero Acapulco</strong>
+          <span>Archivo comunitario de memoria sonora del Hurac&aacute;n Otis</span>
+        </div>
+      </div>
+      <div class="top-actions" aria-label="Accesos principales">
+        <a href="index.html">Mapa sonoro</a>
+        <a href="captura.html">Compartir historia</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-nav-wrap">
+    <nav class="page-nav" aria-label="Indice de metodolog&iacute;a">
+      <a href="#en-pocas-palabras">&#8962; Inicio</a>
+      <a href="#que-es">&#9673; Qu&eacute; es Punto Cero</a>
+      <a href="#investigacion">&#9635; Investigaci&oacute;n doctoral</a>
+      <a href="#metodologia">&#8767; Metodolog&iacute;a</a>
+      <a href="#etica">&#9638; &Eacute;tica y curadur&iacute;a</a>
+      <a href="#despues">&#9679; Despu&eacute;s de enviar</a>
+      <a href="#limites">&#9888; L&iacute;mites del archivo</a>
+    </nav>
+  </div>
+
+  <main>
+    <section id="en-pocas-palabras" class="hero">
+      <div class="eyebrow">En pocas palabras</div>
+      <h1>Punto Cero es un archivo comunitario de memoria sonora del Hurac&aacute;n Otis.</h1>
+      <p class="lead">Forma parte de una investigaci&oacute;n doctoral y busca devolver a la sociedad un espacio de escucha, participaci&oacute;n y memoria.</p>
+      <div class="hero-actions">
+        <a class="button-link primary" href="captura.html">Compartir un testimonio</a>
+        <a class="button-link" href="index.html">Volver al mapa</a>
+      </div>
+    </section>
+
+    <section id="que-es" class="section">
+      <div class="section-body">
+        <div class="intro-layout">
+          <div>
+            <h2 class="section-title"><span class="icon blue">&#9673;</span>&iquest;Qu&eacute; es Punto Cero?</h2>
+            <p class="intro-text">Punto Cero re&uacute;ne relatos, registros y testimonios sonoros vinculados con el Hurac&aacute;n Otis.</p>
+            <p class="intro-text">Su prop&oacute;sito no es sustituir la investigaci&oacute;n doctoral, sino devolver a la comunidad una parte del conocimiento producido.</p>
+            <p class="intro-text">Tambi&eacute;n abre un espacio de participaci&oacute;n ciudadana y construye memoria colectiva desde voces situadas en el territorio.</p>
+          </div>
+          <div class="mini-grid" aria-label="Funciones del archivo">
+            <article class="mini-card">
+              <span class="icon blue">&#8767;</span>
+              <strong>Escuchar</strong>
+              <span>Voces y memorias del desastre.</span>
+            </article>
+            <article class="mini-card">
+              <span class="icon green">&#9679;</span>
+              <strong>Ubicar</strong>
+              <span>Relatos en su contexto territorial.</span>
+            </article>
+            <article class="mini-card">
+              <span class="icon">&#9675;</span>
+              <strong>Reconocer</strong>
+              <span>Afectaciones, cuidados y redes de apoyo.</span>
+            </article>
+            <article class="mini-card">
+              <span class="icon blue">&#8746;</span>
+              <strong>Devolver</strong>
+              <span>Conocimiento a las comunidades.</span>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="investigacion" class="section compact">
+      <div class="two-col">
+        <article class="info-card">
+          <h3><span class="icon blue">&#9635;</span>Relaci&oacute;n con la investigaci&oacute;n doctoral</h3>
+          <p>El proyecto deriva de la investigaci&oacute;n:</p>
+          <p class="quote-box">&ldquo;El trabajo social de la emergencia en el caso del hurac&aacute;n Otis, en Acapulco, M&eacute;xico&rdquo;.</p>
+          <p>La tesis analiza respuestas de atenci&oacute;n social, comunitaria e institucional en comunidades rurales de Acapulco.</p>
+        </article>
+        <article class="info-card">
+          <h3><span class="icon">&#8746;</span>Producto de transferencia social</h3>
+          <p>El archivo permite que el conocimiento no permanezca solo en el documento acad&eacute;mico.</p>
+          <p>Busca crear una forma accesible de retorno social, escucha p&uacute;blica y memoria comunitaria.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="icon blue">&#9678;</span>Enfoque acad&eacute;mico</h2>
+        <p class="section-sub">Conceptos clave para leer social, territorial y &eacute;ticamente el archivo.</p>
+      </div>
+      <div class="section-body">
+        <div class="concept-grid">
+          <article class="concept-card">
+            <span class="icon green">&#10087;</span>
+            <h3>Trabajo Social de la Emergencia</h3>
+            <p>Atenci&oacute;n social, cuidado y respuesta ante crisis.</p>
+          </article>
+          <article class="concept-card">
+            <span class="icon green">&#9827;</span>
+            <h3>Trabajo Social Verde</h3>
+            <p>Relaci&oacute;n entre ambiente, desigualdad y bienestar.</p>
+          </article>
+          <article class="concept-card">
+            <span class="icon blue">&#9878;</span>
+            <h3>Justicia socioambiental</h3>
+            <p>Reconocer desigualdades y defender derechos colectivos.</p>
+          </article>
+          <article class="concept-card">
+            <span class="icon">&#9679;</span>
+            <h3>Vulnerabilidad social</h3>
+            <p>Condiciones que aumentan el riesgo y el impacto.</p>
+          </article>
+          <article class="concept-card">
+            <span class="icon gold">&#9635;</span>
+            <h3>Resiliencia comunitaria</h3>
+            <p>Capacidades colectivas para resistir y reconstruir.</p>
+          </article>
+          <article class="concept-card">
+            <span class="icon blue">&#8767;</span>
+            <h3>Memoria colectiva, etnograf&iacute;a sonora e historia oral</h3>
+            <p>Escuchar, narrar y preservar la experiencia vivida.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="metodologia" class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="icon blue">&#8767;</span>Metodolog&iacute;a</h2>
+        <p class="section-sub">Narrativas sonoras para relacionar voz, territorio y experiencia.</p>
+      </div>
+      <div class="section-body">
+        <div class="method-grid">
+          <article class="method-card">
+            <div class="visual-strip" aria-hidden="true">&#127908;</div>
+            <h3>La voz como memoria situada</h3>
+            <p>Los audios son narrativas sonoras. La voz registra emoci&oacute;n, pausas, silencios, acentos y formas de recordar.</p>
+          </article>
+          <article class="method-card">
+            <div class="visual-strip map" aria-hidden="true">&#128205;</div>
+            <h3>El mapa como relaci&oacute;n territorial</h3>
+            <p>El mapa vincula relato, territorio y experiencia. Cada punto ayuda a comprender desde d&oacute;nde se vivi&oacute; el desastre.</p>
+          </article>
+          <article class="method-card">
+            <div class="visual-strip" aria-hidden="true">&#128483;</div>
+            <h3>Pesquisa y participaci&oacute;n</h3>
+            <p>Los testimonios ciudadanos complementan, pero no sustituyen, las entrevistas formales de la investigaci&oacute;n doctoral.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="etica" class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="icon blue">&#9638;</span>&Eacute;tica y curadur&iacute;a</h2>
+        <p class="section-sub">Cuidamos a las personas, sus historias y su privacidad.</p>
+      </div>
+      <div class="section-body">
+        <div id="despues" class="ethics-process" aria-label="Proceso de cuidado despu&eacute;s de enviar">
+          <div class="ethics-step">
+            <span class="step-badge">1</span>
+            <strong>Recibimos el testimonio.</strong>
+          </div>
+          <div class="ethics-step">
+            <span class="step-badge">2</span>
+            <strong>Lo revisamos de forma privada.</strong>
+          </div>
+          <div class="ethics-step">
+            <span class="step-badge">3</span>
+            <strong>Protegemos datos sensibles.</strong>
+          </div>
+          <div class="ethics-step">
+            <span class="step-badge">4</span>
+            <strong>Si cumple criterios &eacute;ticos, puede publicarse.</strong>
+          </div>
+          <div class="ethics-step">
+            <span class="step-badge">5</span>
+            <strong>La persona puede solicitar retiro.</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="limites" class="bottom-grid">
+      <article class="limit-card">
+        <h3><span class="icon gold">&#9888;</span>L&iacute;mites del archivo</h3>
+        <ul>
+          <li>Punto Cero no es un servicio de emergencia.</li>
+          <li>No sustituye atenci&oacute;n psicol&oacute;gica, jur&iacute;dica o institucional.</li>
+          <li>No publica denuncias sensibles sin revisi&oacute;n.</li>
+          <li>No expone datos personales deliberadamente.</li>
+          <li>No todos los testimonios recibidos necesariamente ser&aacute;n publicados.</li>
+        </ul>
+      </article>
+      <article class="withdrawal-card">
+        <h3><span class="icon">&#9679;</span>Derecho de retiro</h3>
+        <p>Si compartiste un testimonio y deseas solicitar su retiro, puedes comunicarte con el equipo responsable indicando la mayor informaci&oacute;n posible para identificarlo.</p>
+        <a class="button-link" href="captura.html">Solicitar retiro de contenido</a>
+      </article>
+    </section>
+
+    <section class="closing" aria-label="Cierre comunitario">
+      <div class="plant" aria-hidden="true">&#127793;</div>
+      <div>
+        <h2>Este archivo es de todas y todos</h2>
+        <p>Construimos memoria colectiva para no olvidar, para comprender y para transformar. Gracias por compartir tu voz.</p>
+      </div>
+      <div class="people" aria-hidden="true">&#128101;</div>
+    </section>
+  </main>
+
+  <footer>
+    Punto Cero Acapulco &middot; Archivo comunitario de memoria sonora del Hurac&aacute;n Otis &middot; Investigaci&oacute;n doctoral y transferencia social
+  </footer>
+</body>
+</html>

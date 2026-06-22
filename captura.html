@@ -6,6 +6,7 @@
   <title>Comparte tu historia | Punto Cero Acapulco</title>
   <style>
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       min-height: 100vh;
@@ -33,6 +34,25 @@
       text-decoration: none;
       font-size: .85rem;
       font-weight: 600;
+    }
+    header nav {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+    header nav a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 8px 12px;
+      border: 1px solid #30363d;
+      border-radius: 7px;
+      background: #21262d;
+      color: #f0f6fc;
+    }
+    header nav a:hover {
+      background: #30363d;
     }
     main {
       width: min(860px, 100%);
@@ -95,6 +115,237 @@
       color: #c9d1d9;
       font-size: .9rem;
       line-height: 1.5;
+    }
+    .capture-welcome {
+      display: grid;
+      gap: 16px;
+      padding: 16px;
+      border-bottom: 1px solid #30363d;
+      background: #0d1117;
+    }
+    .capture-hero {
+      min-height: 250px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(240px, .92fr);
+      gap: 18px;
+      align-items: center;
+      padding: 24px;
+      border: 1px solid #d8dfd6;
+      border-radius: 10px;
+      background:
+        linear-gradient(90deg, rgba(250, 250, 244, .98) 0%, rgba(250, 250, 244, .94) 44%, rgba(250, 250, 244, .28) 70%),
+        url("portada de fondo.png") right center / cover no-repeat;
+      color: #0f172a;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, .22);
+      overflow: hidden;
+    }
+    .capture-hero-copy {
+      display: grid;
+      gap: 14px;
+      align-content: center;
+    }
+    .capture-hero h2 {
+      margin: 0;
+      max-width: 560px;
+      font-size: clamp(2rem, 4.4vw, 3.05rem);
+      line-height: 1.08;
+      letter-spacing: 0;
+      color: #0f172a;
+    }
+    .capture-hero p {
+      margin: 0;
+      max-width: 540px;
+      color: #1f2937;
+      font-size: .98rem;
+      line-height: 1.65;
+    }
+    .capture-hero-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      justify-self: start;
+      gap: 8px;
+      min-height: 48px;
+      padding: 12px 18px;
+      border: 1px solid #0b6b57;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #0f7b62, #0b6b57);
+      color: #fff;
+      font-size: .9rem;
+      font-weight: 900;
+      text-decoration: none;
+      box-shadow: 0 10px 24px rgba(15, 123, 98, .26);
+      transition: transform .16s, box-shadow .16s;
+    }
+    .capture-hero-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(15, 123, 98, .34);
+    }
+    .hero-helper {
+      color: #52616b !important;
+      font-size: .78rem !important;
+    }
+    .hero-quote {
+      width: 178px;
+      height: 178px;
+      justify-self: center;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      border-radius: 50%;
+      background: rgba(231, 241, 233, .82);
+      color: #0f4e45;
+      text-align: center;
+      font-size: .86rem;
+      font-weight: 800;
+      line-height: 1.45;
+      box-shadow: inset 0 0 0 1px rgba(15, 78, 69, .08);
+    }
+    .hero-quote span {
+      display: block;
+      color: #0f7b62;
+      font-size: 2rem;
+      line-height: .8;
+      margin-bottom: 4px;
+    }
+    .capture-panel {
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      background: #161b22;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .capture-panel h2 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #f0f6fc;
+      font-size: 1.05rem;
+      line-height: 1.25;
+    }
+    .capture-panel p {
+      margin: 0;
+      color: #8b949e;
+      font-size: .82rem;
+      line-height: 1.5;
+    }
+    .panel-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      background: #0f7b6224;
+      color: #3fb950;
+      font-size: 1rem;
+    }
+    .prompt-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .prompt-card {
+      min-height: 132px;
+      display: grid;
+      gap: 8px;
+      align-content: center;
+      justify-items: center;
+      padding: 14px 10px;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #101720, #161b22);
+      text-align: center;
+    }
+    .prompt-card span {
+      width: 42px;
+      height: 42px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #0f7b6224;
+      color: #3fb950;
+      font-size: 1.25rem;
+    }
+    .prompt-card strong {
+      color: #f0f6fc;
+      font-size: .78rem;
+      line-height: 1.32;
+    }
+    .support-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .support-card {
+      min-height: 190px;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      background: #161b22;
+    }
+    .support-card h3 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #f0f6fc;
+      font-size: .98rem;
+      line-height: 1.25;
+    }
+    .support-card p,
+    .support-card li {
+      color: #c9d1d9;
+      font-size: .83rem;
+      line-height: 1.5;
+    }
+    .support-card ul {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 7px;
+    }
+    .support-card.people {
+      background:
+        linear-gradient(180deg, rgba(22, 27, 34, .95), rgba(22, 27, 34, .98)),
+        radial-gradient(circle at bottom, rgba(63, 185, 80, .14), transparent 52%);
+    }
+    .encouragement-band {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid #f0c00066;
+      border-radius: 10px;
+      background: #2f2608;
+      color: #f2cc60;
+    }
+    .encouragement-band strong {
+      display: block;
+      color: #f8e3a2;
+      font-size: .9rem;
+      margin-bottom: 3px;
+    }
+    .encouragement-band p {
+      margin: 0;
+      color: #f2cc60;
+      font-size: .82rem;
+      line-height: 1.45;
+    }
+    .encouragement-star {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #f0c00022;
+      color: #f2cc60;
+      font-size: 1.35rem;
     }
     .welcome-audio {
       padding: 16px;
@@ -303,6 +554,28 @@
       font-size: .8rem;
       line-height: 1.5;
     }
+    .curation-brief {
+      display: grid;
+      gap: 6px;
+      padding: 13px 14px;
+      border: 1px solid #58a6ff55;
+      border-radius: 6px;
+      background: #10243a;
+      color: #dcecff;
+      font-size: .8rem;
+      line-height: 1.5;
+    }
+    .curation-brief strong {
+      color: #f0f6fc;
+      font-size: .82rem;
+    }
+    .curation-brief a {
+      color: #79c0ff;
+      font-weight: 700;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 3px;
+    }
     .support-note {
       color: #8b949e;
       font-size: .76rem;
@@ -438,8 +711,59 @@
       .grid-2, .grid-3, .coords-row { grid-template-columns: 1fr; }
       header { padding: 14px 16px; }
       header h1 { font-size: .95rem; letter-spacing: 0; }
+      header nav {
+        width: 100%;
+      }
+      header nav a {
+        flex: 1;
+      }
       main { padding: 14px 10px 28px; }
       form { padding: 12px; }
+      .capture-welcome {
+        padding: 12px;
+        gap: 12px;
+      }
+      .capture-hero {
+        min-height: auto;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 18px;
+        background:
+          linear-gradient(180deg, rgba(250, 250, 244, .98), rgba(250, 250, 244, .9)),
+          url("portada de fondo.png") center bottom / cover no-repeat;
+      }
+      .capture-hero h2 {
+        font-size: 1.8rem;
+      }
+      .capture-hero p {
+        font-size: .9rem;
+      }
+      .capture-hero-cta {
+        width: 100%;
+        justify-self: stretch;
+      }
+      .hero-quote {
+        width: 100%;
+        height: auto;
+        min-height: 90px;
+        border-radius: 10px;
+      }
+      .prompt-grid,
+      .support-cards {
+        grid-template-columns: 1fr;
+      }
+      .prompt-card {
+        min-height: 76px;
+        grid-template-columns: 42px minmax(0, 1fr);
+        justify-items: start;
+        text-align: left;
+      }
+      .support-card {
+        min-height: 0;
+      }
+      .encouragement-band {
+        grid-template-columns: 1fr;
+      }
       .intro { padding: 14px; }
       .intro h2 { font-size: 1.18rem; }
       .welcome-audio { padding: 14px; }
@@ -465,7 +789,10 @@
 <body>
   <header>
     <h1>Punto Cero Acapulco · Comparte tu historia</h1>
-    <a href="index.html">Volver al mapa</a>
+    <nav aria-label="Accesos principales">
+      <a href="index.html">← Volver al mapa</a>
+      <a href="metodologia.html">Metodología y ética</a>
+    </nav>
   </header>
 
   <main>
@@ -474,9 +801,77 @@
         <h2>Tu historia</h2>
         <span class="status-pill">Revisión previa</span>
       </div>
-      <div class="intro">
-        <h2>Cuéntanos qué viviste con Otis</h2>
-        <p>Sube tu audio y algunos datos básicos para ubicar tu relato. El equipo de Punto Cero lo revisará con cuidado antes de decidir si puede aparecer en el mapa.</p>
+      <div class="capture-welcome">
+        <section class="capture-hero" aria-labelledby="capture-hero-title">
+          <div class="capture-hero-copy">
+            <h2 id="capture-hero-title">Comparte tu memoria sobre el Huracán Otis</h2>
+            <p>No importa si vivías en Acapulco, estabas de visita, trabajabas, estudiabas o apoyaste durante la emergencia. Tu voz también forma parte de esta historia.</p>
+            <a class="capture-hero-cta" href="#capture-form">&#127908; Comenzar mi testimonio</a>
+            <p class="hero-helper">El formulario está más abajo en esta página.</p>
+          </div>
+          <div class="hero-quote" aria-hidden="true">
+            <span>&ldquo;</span>
+            Cada voz cuenta. Cada historia nos ayuda a recordar, entender y reconstruir.
+          </div>
+        </section>
+
+        <section class="capture-panel" aria-labelledby="guide-title">
+          <h2 id="guide-title"><span class="panel-icon">&#128172;</span>¿Qué puedes contar?</h2>
+          <p>Algunas ideas que pueden ayudarte a comenzar.</p>
+          <div class="prompt-grid">
+            <article class="prompt-card">
+              <span>&#128205;</span>
+              <strong>¿Dónde estabas cuando llegó Otis?</strong>
+            </article>
+            <article class="prompt-card">
+              <span>&#127911;</span>
+              <strong>¿Qué viste, escuchaste o sentiste?</strong>
+            </article>
+            <article class="prompt-card">
+              <span>&#128101;</span>
+              <strong>¿Cómo afectó a tu familia, comunidad o trabajo?</strong>
+            </article>
+            <article class="prompt-card">
+              <span>&#128197;</span>
+              <strong>¿Qué ocurrió en los días posteriores?</strong>
+            </article>
+            <article class="prompt-card">
+              <span>&#10084;</span>
+              <strong>¿Qué aprendiste o qué mensaje quieres dejar?</strong>
+            </article>
+          </div>
+        </section>
+
+        <div class="support-cards">
+          <section class="support-card" aria-labelledby="plain-title">
+            <h3 id="plain-title"><span class="panel-icon">&#128156;</span>No necesitas hablar perfecto</h3>
+            <p>No necesitas preparar un discurso ni usar palabras técnicas.</p>
+            <p>Habla con tus propias palabras. Tu experiencia es única y valiosa.</p>
+          </section>
+
+          <section class="support-card" aria-labelledby="care-title">
+            <h3 id="care-title"><span class="panel-icon">&#128737;</span>Tu testimonio será cuidado</h3>
+            <ul>
+              <li>Tu audio no se publica automáticamente.</li>
+              <li>Primero queda en revisión privada.</li>
+              <li>Se revisa para proteger tu identidad y datos sensibles.</li>
+              <li>Puedes solicitar que se retire después.</li>
+            </ul>
+          </section>
+
+          <section class="support-card people" aria-labelledby="participants-title">
+            <h3 id="participants-title"><span class="panel-icon">&#129309;</span>¿Quiénes pueden participar?</h3>
+            <p>Habitantes, comunidades rurales, estudiantes, docentes, personal de salud, trabajadores sociales, pescadores, productores rurales, comerciantes, rescatistas, voluntarios, servidores públicos, turistas y personas que vivieron Otis desde cualquier lugar.</p>
+          </section>
+        </div>
+
+        <div class="encouragement-band">
+          <span class="encouragement-star" aria-hidden="true">&#9733;</span>
+          <div>
+            <strong>Tu testimonio puede ser en audio, en el idioma que prefieras y con el nombre que desees usar.</strong>
+            <p>Juntos construimos memoria colectiva para no olvidar y para transformar.</p>
+          </div>
+        </div>
       </div>
 
       <div class="welcome-audio">
@@ -513,6 +908,11 @@
       <form id="capture-form">
         <div class="notice">
           Nada se publica automáticamente. Tu audio se guarda de forma privada para revisión y, si hace falta, el equipo puede pedirte más información.
+        </div>
+        <div class="curation-brief">
+          <strong>Curaduría ética antes de publicar</strong>
+          <p>Tu testimonio no se publicará automáticamente. Primero será revisado mediante un proceso de curaduría ética para proteger tu identidad, tus datos personales y la dignidad de las personas mencionadas.</p>
+          <p><a href="metodologia.html">Conoce la metodología y ética del archivo</a></p>
         </div>
 
         <div class="step-block">

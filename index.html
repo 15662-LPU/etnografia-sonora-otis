@@ -120,6 +120,46 @@
     .stat-section-title { font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: #484f58; font-weight: 700; margin: 10px 0 6px; }
 
     /* Footer del sidebar */
+    #archive-about {
+      padding: 14px 18px;
+      border-top: 1px solid #30363d;
+      background: #0d1117;
+      display: grid;
+      gap: 8px;
+    }
+    #archive-about h2 {
+      margin: 0;
+      color: #f0f6fc;
+      font-size: .88rem;
+      line-height: 1.25;
+    }
+    #archive-about p {
+      margin: 0;
+      color: #8b949e;
+      font-size: .74rem;
+      line-height: 1.45;
+    }
+    .archive-about-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 34px;
+      padding: 7px 10px;
+      border: 1px solid #58a6ff66;
+      border-radius: 6px;
+      background: #1f6feb22;
+      color: #58a6ff;
+      font-size: .72rem;
+      font-weight: 800;
+      text-decoration: none;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .archive-about-link:hover {
+      background: #1f6feb38;
+      border-color: #58a6ff;
+      color: #c9e2ff;
+    }
     #sidebar-footer { padding: 10px 18px; border-top: 1px solid #30363d; display: flex; gap: 8px; }
     .footer-btn { flex: 1; padding: 7px 6px; border-radius: 6px; border: 1px solid #30363d; background: #21262d; color: #8b949e; font-size: .72rem; cursor: pointer; font-family: inherit; font-weight: 600; transition: background .15s, color .15s; text-align: center; }
     .footer-btn:hover { background: #30363d; color: #f0f6fc; }
@@ -466,6 +506,7 @@
       #stats-toggle    { display: none; }
       #stats-panel     { display: none; }
       #sidebar-footer  { display: none; }
+      #archive-about   { display: none; }
 
       /* Barra compacta de navegación del bottom sheet */
       #mobile-nav {
@@ -585,6 +626,14 @@
         padding: 10px 10px 84px;
       }
       #sidebar.sheet-collapsed #point-list { display: none; }
+      #sidebar.sheet-mid #archive-about,
+      #sidebar.sheet-expanded #archive-about {
+        display: grid;
+        flex: 0 0 auto;
+        padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+      }
+      #sidebar.filters-open #archive-about,
+      #sidebar.point-card-open #archive-about { display: none; }
       .point-item {
         min-height: 72px;
         margin: 0 0 9px;
@@ -1137,7 +1186,7 @@
     </div>
     <button id="cover-enter" onclick="(function(){ var s=document.getElementById('cover-splash'); s.classList.add('exiting'); setTimeout(function(){ s.style.display='none'; if(typeof map!=='undefined') map.resize(); },680); })()">Explorar el mapa <span class="cover-arrow">→</span></button>
     <a id="cover-capture" href="captura.html">🎙️ Comparte tu historia</a>
-    <div class="cover-footer">MapLibre GL JS &nbsp;&middot;&nbsp; Spotify &nbsp;&middot;&nbsp; Guerrero, México &nbsp;&middot;&nbsp; 2023&ndash;2025 &nbsp;&middot;&nbsp; <a href="curaduria.html">Curaduría</a></div>
+    <div class="cover-footer">MapLibre GL JS &nbsp;&middot;&nbsp; Spotify &nbsp;&middot;&nbsp; Guerrero, México &nbsp;&middot;&nbsp; 2023&ndash;2025 &nbsp;&middot;&nbsp; <a href="metodologia.html">Metodología y ética</a> &nbsp;&middot;&nbsp; <a href="curaduria.html">Curaduría</a></div>
   </div>
 </div>
 
@@ -1223,6 +1272,11 @@
   <div id="point-list">
     <div id="no-results">Sin resultados para tu busqueda.</div>
   </div>
+  <section id="archive-about" aria-labelledby="archive-about-title">
+    <h2 id="archive-about-title">Sobre este archivo comunitario</h2>
+    <p>Punto Cero es un producto de transferencia social de una investigación doctoral sobre trabajo social de la emergencia, memoria colectiva y justicia socioambiental tras el huracán Otis.</p>
+    <a class="archive-about-link" href="metodologia.html">Conocer metodología y ética</a>
+  </section>
   <div id="sidebar-footer">
     <button class="footer-btn primary" id="btn-export">&#8595; GeoJSON</button>
     <button class="footer-btn" id="btn-fit">Ver todos</button>
