@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Comparte tu historia | Punto Cero Acapulco</title>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <style>
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -654,6 +656,45 @@
       gap: 10px;
       align-items: end;
     }
+    .coord-helper {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .coord-helper-status {
+      margin-top: 6px;
+      color: #8b949e;
+      font-size: .78rem;
+      line-height: 1.35;
+    }
+    .location-picker {
+      margin: 12px 0;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #0d1117;
+    }
+    .location-picker-head {
+      padding: 10px 12px;
+      border-bottom: 1px solid #30363d;
+      color: #c9d1d9;
+      font-size: .82rem;
+      line-height: 1.4;
+    }
+    #location-map-picker {
+      width: 100%;
+      height: 280px;
+      min-height: 220px;
+    }
+    .location-picker-status {
+      padding: 9px 12px;
+      border-top: 1px solid #30363d;
+      color: #8b949e;
+      font-size: .78rem;
+      line-height: 1.35;
+    }
     button {
       border: 1px solid #30363d;
       background: #21262d;
@@ -708,7 +749,7 @@
     .message.err { color: #ff7b72; }
     @media (max-width: 860px) {
       main { grid-template-columns: 1fr; }
-      .grid-2, .grid-3, .coords-row { grid-template-columns: 1fr; }
+      .grid-2, .grid-3, .coords-row, .coord-helper { grid-template-columns: 1fr; }
       header { padding: 14px 16px; }
       header h1 { font-size: .95rem; letter-spacing: 0; }
       header nav {
@@ -1007,12 +1048,27 @@
           <div class="support-note">Esta información nos ayuda a comprender cómo distintos sectores de la sociedad vivieron y recuerdan el Huracán Otis.</div>
         </div>
 
-        <details class="support-panel">
+        <details class="support-panel" id="location-support-panel">
           <summary>Ubicación exacta y datos para revisión</summary>
           <div class="support-panel-body">
             <p class="support-note">Estos datos ayudan al equipo a revisar el relato. Si no quieres compartir ubicación exacta, deja latitud y longitud vacías.</p>
             <div>
               <label>Ubicación exacta, si deseas compartirla</label>
+              <div class="coord-helper">
+                <div>
+                  <label for="coord-helper-input">Pegar coordenadas o enlace de mapa</label>
+                  <input id="coord-helper-input" inputmode="text" placeholder="16.8531, -99.8237 o enlace de Google Maps" />
+                </div>
+                <button type="button" id="coord-helper-button">Usar punto aproximado</button>
+              </div>
+              <div id="coord-helper-status" class="coord-helper-status">Util para ubicar una colonia, barrio o referencia aproximada cuando el audio no trae GPS propio.</div>
+              <div class="location-picker">
+                <div class="location-picker-head">
+                  Toca en el mapa una colonia, barrio o referencia publica. No tiene que ser el lugar exacto donde se grabo el audio.
+                </div>
+                <div id="location-map-picker" aria-label="Mapa para elegir ubicacion aproximada"></div>
+                <div id="location-picker-status" class="location-picker-status">Abre esta seccion y toca el mapa para elegir un punto aproximado.</div>
+              </div>
               <div class="coords-row">
                 <div>
                   <input id="latitude" name="latitude" inputmode="decimal" placeholder="Latitud" />
@@ -1106,6 +1162,12 @@
     var previewButton = document.getElementById('preview-button');
     var downloadButton = document.getElementById('download-button');
     var gpsButton = document.getElementById('gps-button');
+    var coordHelperInput = document.getElementById('coord-helper-input');
+    var coordHelperButton = document.getElementById('coord-helper-button');
+    var coordHelperStatus = document.getElementById('coord-helper-status');
+    var locationPanel = document.getElementById('location-support-panel');
+    var locationMapEl = document.getElementById('location-map-picker');
+    var locationPickerStatus = document.getElementById('location-picker-status');
     var preview = document.getElementById('json-preview');
     var message = document.getElementById('message');
     var audioInput = document.getElementById('audio-file');
@@ -1118,6 +1180,8 @@
     var ALLOWED_AUDIO_EXTENSIONS = ['mp3', 'm4a', 'wav', 'ogg'];
     var ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/ogg'];
     var currentSubmissionId = createUuid();
+    var locationPickerMap = null;
+    var locationPickerMarker = null;
 
     function formatAudioTime(seconds) {
       if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
@@ -1339,6 +1403,96 @@
       if (!raw) return null;
       var n = Number(raw.replace(',', '.'));
       return Number.isFinite(n) ? n : null;
+    }
+
+    function parseCoordinatePair(raw) {
+      var text = String(raw || '').trim();
+      if (!text) return null;
+      var atMatch = text.match(/@(-?\d+(?:[.,]\d+)?),\s*(-?\d+(?:[.,]\d+)?)/);
+      var queryMatch = text.match(/[?&](?:q|query|ll)=(-?\d+(?:[.,]\d+)?),\s*(-?\d+(?:[.,]\d+)?)/);
+      var googlePlaceMatch = text.match(/!3d(-?\d+(?:[.,]\d+)?)!4d(-?\d+(?:[.,]\d+)?)/);
+      var osmHashMatch = text.match(/#map=\d+\/(-?\d+(?:[.,]\d+)?)\/(-?\d+(?:[.,]\d+)?)/);
+      var pair = atMatch || queryMatch || googlePlaceMatch || osmHashMatch;
+      var values = pair
+        ? [pair[1], pair[2]]
+        : (text.match(/-?\d{1,3}(?:[.,]\d+)?/g) || []).slice(0, 2);
+      if (values.length < 2) return null;
+      var first = numberOrNull(values[0]);
+      var second = numberOrNull(values[1]);
+      if (first === null || second === null) return null;
+
+      var lat = first;
+      var lng = second;
+      if (Math.abs(first) > 35 && Math.abs(second) <= 35) {
+        lat = second;
+        lng = first;
+      }
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+      return { lat: lat, lng: lng };
+    }
+
+    function setLocationPickerMarker(lat, lng) {
+      if (!locationPickerMap || !window.maplibregl) return;
+      var lngLat = [lng, lat];
+      if (!locationPickerMarker) {
+        locationPickerMarker = new maplibregl.Marker({ color: '#f0883e' })
+          .setLngLat(lngLat)
+          .addTo(locationPickerMap);
+      } else {
+        locationPickerMarker.setLngLat(lngLat);
+      }
+    }
+
+    function setApproximateCoordinates(lat, lng, messageText) {
+      document.getElementById('latitude').value = lat.toFixed(6);
+      document.getElementById('longitude').value = lng.toFixed(6);
+      document.getElementById('coordinate-type').value = 'approximate';
+      setLocationPickerMarker(lat, lng);
+      if (coordHelperStatus) coordHelperStatus.textContent = messageText;
+      if (locationPickerStatus) locationPickerStatus.textContent = messageText;
+      setMessage('Ubicacion aproximada aplicada. Revisa que no sea un domicilio sensible.', 'ok');
+      updatePreview();
+    }
+
+    function initLocationPickerMap() {
+      if (!locationMapEl || locationPickerMap) return;
+      if (!window.maplibregl) {
+        if (locationPickerStatus) locationPickerStatus.textContent = 'El mapa no pudo cargarse. Puedes usar GPS o pegar coordenadas como respaldo.';
+        return;
+      }
+      locationPickerMap = new maplibregl.Map({
+        container: 'location-map-picker',
+        style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+        center: [-99.8237, 16.8531],
+        zoom: 11,
+        minZoom: 8,
+        maxZoom: 17
+      });
+      locationPickerMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+      locationPickerMap.on('click', function(event) {
+        setApproximateCoordinates(
+          event.lngLat.lat,
+          event.lngLat.lng,
+          'Punto aproximado elegido en el mapa: ' + event.lngLat.lat.toFixed(6) + ', ' + event.lngLat.lng.toFixed(6) + '.'
+        );
+      });
+      locationPickerMap.once('load', function() {
+        locationPickerMap.resize();
+      });
+    }
+
+    function applyCoordinateHelper() {
+      var parsed = parseCoordinatePair(coordHelperInput && coordHelperInput.value);
+      if (!parsed) {
+        if (coordHelperStatus) coordHelperStatus.textContent = 'No pude leer coordenadas. Pega algo como 16.8531, -99.8237 o un enlace de mapa que contenga coordenadas.';
+        setMessage('No pude leer coordenadas del texto pegado.', 'err');
+        return;
+      }
+      setApproximateCoordinates(
+        parsed.lat,
+        parsed.lng,
+        'Punto aproximado aplicado: ' + parsed.lat.toFixed(6) + ', ' + parsed.lng.toFixed(6) + '. Revisa que represente una colonia o referencia publica, no un domicilio sensible.'
+      );
     }
 
     function getAudioFile() {
@@ -1601,6 +1755,8 @@
       navigator.geolocation.getCurrentPosition(function (position) {
         document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
         document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+        setLocationPickerMarker(position.coords.latitude, position.coords.longitude);
+        if (locationPickerStatus) locationPickerStatus.textContent = 'GPS capturado. Si prefieres publicar una referencia menos exacta, toca una colonia o punto aproximado en el mapa.';
         setMessage('Coordenadas capturadas. Revisa si deben publicarse exactas o aproximadas.', 'ok');
         updatePreview();
       }, function () {
@@ -1611,6 +1767,30 @@
         maximumAge: 0
       });
     });
+
+    if (coordHelperButton) {
+      coordHelperButton.addEventListener('click', applyCoordinateHelper);
+    }
+
+    if (coordHelperInput) {
+      coordHelperInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          applyCoordinateHelper();
+        }
+      });
+    }
+
+    if (locationPanel) {
+      locationPanel.addEventListener('toggle', function() {
+        if (!locationPanel.open) return;
+        initLocationPickerMap();
+        window.setTimeout(function() {
+          if (locationPickerMap) locationPickerMap.resize();
+        }, 80);
+      });
+      if (locationPanel.open) initLocationPickerMap();
+    }
 
     previewButton.addEventListener('click', function () {
       validateAudioFile();
