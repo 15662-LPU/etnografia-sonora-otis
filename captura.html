@@ -992,6 +992,10 @@
     }
     .file-status.ok { color: var(--leaf); font-weight: 850; }
     .file-status.err { color: var(--primary-red-dark); font-weight: 850; }
+    .audio-preview {
+      width: 100%;
+      margin-top: 6px;
+    }
     .guide-grid {
       grid-template-columns: repeat(5, minmax(0, 1fr));
     }
@@ -1047,6 +1051,43 @@
     .simple-fields {
       display: none;
     }
+    .location-intro {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+    .location-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .location-mode-button {
+      min-height: 68px;
+      border-radius: 18px;
+      background: #fff;
+      border: 2px solid var(--line);
+      color: var(--ink);
+      font-size: 1rem;
+      font-weight: 900;
+    }
+    .location-mode-button.is-selected {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+    .location-text-fields {
+      display: grid;
+      gap: 8px;
+    }
+    .location-text-fields[hidden],
+    .location-panel-shell {
+      display: none;
+    }
+    .location-panel-shell.is-visible {
+      display: block;
+    }
     label {
       color: var(--ink);
       font-size: 1rem;
@@ -1071,9 +1112,6 @@
       border-color: var(--line);
       background: #fff;
       border-radius: 18px;
-    }
-    #location-support-panel {
-      display: none;
     }
     .support-panel summary {
       color: var(--ink);
@@ -1311,7 +1349,8 @@
       .quick-actions,
       .choice-grid,
       .profile-grid,
-      .guide-grid {
+      .guide-grid,
+      .location-mode-grid {
         grid-template-columns: 1fr;
       }
       .big-action {
@@ -1478,9 +1517,10 @@
             <button type="button" id="record-button" class="big-action record-action">🎤 GRABAR MI HISTORIA</button>
             <button type="button" id="upload-button" class="big-action upload-action">📤 SUBIR AUDIO DE MI TELÉFONO</button>
           </div>
-          <input id="audio-file" class="visually-hidden" name="audio-file" type="file" accept=".mp3,.m4a,.wav,.ogg,.webm,audio/mpeg,audio/mp4,audio/wav,audio/ogg,audio/webm" required />
+          <input id="audio-file" class="visually-hidden" name="audio-file" type="file" accept=".mp3,.m4a,.wav,.ogg,audio/mpeg,audio/mp4,audio/wav,audio/ogg" />
           <div id="record-status" class="record-status" aria-live="polite">Busca un lugar tranquilo. Habla claro, como nota de voz.</div>
           <div id="audio-file-status" class="file-status">Aún no has agregado audio.</div>
+          <audio id="audio-preview" class="audio-preview" controls hidden></audio>
 
           <div class="guide-grid" aria-label="Preguntas guía">
             <div class="guide-card"><span>📍</span>¿Dónde estabas cuando llegó Otis?</div>
@@ -1540,12 +1580,27 @@
           <div class="support-note">Si no sabes qué elegir, deja la primera opción. Lo importante es tu audio.</div>
         </div>
 
-        <details class="support-panel" id="location-support-panel">
-          <summary>Ubicación exacta y datos para revisión</summary>
+        <div class="step-block is-locked" id="step-location">
+          <div class="step-title"><span class="step-number">?</span><span>¿Dónde viviste esta experiencia?</span></div>
+          <p class="location-intro">Puedes marcar aproximadamente la colonia, comunidad o zona donde viviste tu experiencia. No tiene que ser exacto.</p>
+          <div class="location-mode-grid" aria-label="Forma de compartir ubicación">
+            <button type="button" class="location-mode-button" data-location-mode="map">Marcar en el mapa</button>
+            <button type="button" class="location-mode-button" data-location-mode="text">Escribir colonia o comunidad</button>
+            <button type="button" class="location-mode-button" data-location-mode="none">Prefiero no decir</button>
+          </div>
+          <div class="location-text-fields" id="location-text-fields" hidden>
+            <label for="location-text-input">Colonia, comunidad o zona aproximada</label>
+            <input id="location-text-input" inputmode="text" placeholder="Ejemplo: Col. Progreso, Renacimiento, Pie de la Cuesta" />
+            <div class="hint">No escribas domicilio exacto. Con una referencia general es suficiente.</div>
+          </div>
+        </div>
+
+        <details class="support-panel location-panel-shell" id="location-support-panel">
+          <summary>Mapa para marcar zona aproximada</summary>
           <div class="support-panel-body">
-            <p class="support-note">Estos datos ayudan al equipo a revisar el relato. Si no quieres compartir ubicación exacta, deja latitud y longitud vacías.</p>
+            <p class="support-note">Toca una colonia, comunidad o referencia pública. El envío también funciona si prefieres no compartir coordenadas.</p>
             <div>
-              <label>Ubicación exacta, si deseas compartirla</label>
+              <label>Ubicación aproximada, si deseas compartirla</label>
               <div class="coord-helper">
                 <div>
                   <label for="coord-helper-input">Pegar coordenadas o enlace de mapa</label>
@@ -1665,24 +1720,32 @@
     var message = document.getElementById('message');
     var audioInput = document.getElementById('audio-file');
     var audioFileStatus = document.getElementById('audio-file-status');
+    var audioPreview = document.getElementById('audio-preview');
     var recordButton = document.getElementById('record-button');
     var uploadButton = document.getElementById('upload-button');
     var recordStatus = document.getElementById('record-status');
     var stepTopic = document.getElementById('step-topic');
+    var stepLocation = document.getElementById('step-location');
     var stepSubmit = document.getElementById('step-submit');
     var submitActions = document.getElementById('submit-actions');
+    var locationTextFields = document.getElementById('location-text-fields');
+    var locationTextInput = document.getElementById('location-text-input');
     var SUPABASE_URL = 'https://zopzhhqzuslyafznwhnc.supabase.co';
     var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvcHpoaHF6dXNseWFmem53aG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzA2NTQsImV4cCI6MjA5NjYwNjY1NH0.KW9A72h4QI7sdkiUqz_jYqElmD_npt5PGctLczHM2D0';
     var SUPABASE_BUCKET = 'testimonios-audio';
     var ANALYTICS_SESSION_KEY = 'punto_cero_analytics_session';
     var MAX_AUDIO_BYTES = 100 * 1024 * 1024;
-    var ALLOWED_AUDIO_EXTENSIONS = ['mp3', 'm4a', 'wav', 'ogg', 'webm'];
-    var ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/webm'];
+    var ALLOWED_AUDIO_EXTENSIONS = ['mp3', 'm4a', 'wav', 'ogg'];
+    var ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/ogg'];
     var currentSubmissionId = createUuid();
     var locationPickerMap = null;
     var locationPickerMarker = null;
     var isSubmitting = false;
     var uploadedAudioCache = null;
+    var recordedAudioFile = null;
+    var audioPreviewUrl = null;
+    var audioCanSubmit = false;
+    var selectedLocationMode = 'none';
     var mediaRecorder = null;
     var recordingStream = null;
     var recordingChunks = [];
@@ -1768,7 +1831,7 @@
     function setSubmittingState(active, label) {
       isSubmitting = active;
       if (submitButton) {
-        submitButton.disabled = active;
+        submitButton.disabled = active || !audioCanSubmit;
         submitButton.textContent = active ? (label || 'Enviando...') : 'Enviar mi audio para revisión';
       }
       previewButton.disabled = active;
@@ -1849,7 +1912,7 @@
     }
 
     function validateAudioFile() {
-      var file = audioInput.files && audioInput.files[0] ? audioInput.files[0] : null;
+      var file = getAudioFile();
       var result = {
         valid: false,
         error: null,
@@ -1859,8 +1922,10 @@
 
       if (!file) {
         audioInput.setCustomValidity('');
-        audioFileStatus.textContent = 'Puedes grabar aqui o subir mp3, m4a, wav, ogg o webm. Maximo: 100 MB.';
+        audioFileStatus.textContent = 'Puedes grabar aqui o subir mp3, m4a, wav u ogg. Maximo: 100 MB.';
         audioFileStatus.className = 'file-status';
+        audioCanSubmit = false;
+        setSubmittingState(false);
         return result;
       }
 
@@ -1872,10 +1937,12 @@
       result.extension = extension || null;
       result.mime_type = file.type || null;
       result.size_bytes = file.size;
-      result.valid = extensionAllowed && typeAllowed && sizeAllowed;
+      result.valid = file.size > 0 && extensionAllowed && typeAllowed && sizeAllowed;
 
-      if (!extensionAllowed) {
-        result.error = 'Formato no permitido. Usa mp3, m4a, wav, ogg o webm.';
+      if (!file.size) {
+        result.error = 'El audio no tiene contenido. Graba de nuevo o sube otro archivo.';
+      } else if (!extensionAllowed) {
+        result.error = 'Formato no permitido. Usa mp3, m4a, wav u ogg.';
       } else if (!typeAllowed) {
         result.error = 'El tipo MIME del archivo no coincide con los formatos permitidos.';
       } else if (!sizeAllowed) {
@@ -1891,11 +1958,13 @@
         audioFileStatus.className = 'file-status err';
       }
 
+      audioCanSubmit = result.valid;
+      setSubmittingState(false);
       return result;
     }
 
     function audioMeta() {
-      var file = audioInput.files && audioInput.files[0] ? audioInput.files[0] : null;
+      var file = getAudioFile();
       var validation = validateAudioFile();
       if (!file) {
         return {
@@ -1979,6 +2048,7 @@
       document.getElementById('latitude').value = lat.toFixed(6);
       document.getElementById('longitude').value = lng.toFixed(6);
       document.getElementById('coordinate-type').value = 'approximate';
+      selectedLocationMode = 'map';
       setLocationPickerMarker(lat, lng);
       if (coordHelperStatus) coordHelperStatus.textContent = messageText;
       if (locationPickerStatus) locationPickerStatus.textContent = messageText;
@@ -2048,6 +2118,7 @@
         button.addEventListener('click', function() {
           testimonyType.value = button.getAttribute('data-testimony-type');
           setActiveButton(topicButtons, button);
+          revealStep(stepLocation);
           revealStep(stepSubmit);
           updatePreview();
         });
@@ -2057,6 +2128,7 @@
         button.addEventListener('click', function() {
           participantProfile.value = button.getAttribute('data-profile');
           setActiveButton(profileButtons, button);
+          revealStep(stepLocation);
           revealStep(stepSubmit);
           updatePreview();
         });
@@ -2070,6 +2142,81 @@
       }) || profileButtons[0]);
     }
 
+    function clearCoordinates() {
+      document.getElementById('latitude').value = '';
+      document.getElementById('longitude').value = '';
+      if (locationPickerMarker) {
+        locationPickerMarker.remove();
+        locationPickerMarker = null;
+      }
+    }
+
+    function applyLocationTextValue() {
+      var text = locationTextInput ? locationTextInput.value.trim() : '';
+      document.getElementById('community').value = text || 'Acapulco';
+      document.getElementById('locality').value = text || 'No especificada';
+      document.getElementById('coordinate-type').value = text ? 'approximate' : 'unknown';
+      clearCoordinates();
+      updatePreview();
+    }
+
+    function setLocationMode(mode) {
+      var buttons = Array.prototype.slice.call(document.querySelectorAll('[data-location-mode]'));
+      selectedLocationMode = mode;
+      setActiveButton(buttons, buttons.find(function(button) {
+        return button.getAttribute('data-location-mode') === mode;
+      }));
+
+      if (mode === 'map') {
+        if (locationTextFields) locationTextFields.hidden = true;
+        if (locationPanel) {
+          locationPanel.classList.add('is-visible');
+          locationPanel.open = true;
+          initLocationPickerMap();
+          window.setTimeout(function() {
+            if (locationPickerMap) locationPickerMap.resize();
+          }, 80);
+        }
+        document.getElementById('coordinate-type').value = 'approximate';
+        setMessage('Marca una zona aproximada en el mapa. No tiene que ser exacta.', 'info');
+      } else {
+        if (locationPanel) {
+          locationPanel.open = false;
+          locationPanel.classList.remove('is-visible');
+        }
+        clearCoordinates();
+        if (mode === 'text') {
+          if (locationTextFields) locationTextFields.hidden = false;
+          applyLocationTextValue();
+          if (locationTextInput) locationTextInput.focus();
+          setMessage('Escribe una colonia, comunidad o zona aproximada. No pongas domicilio exacto.', 'info');
+        } else {
+          if (locationTextFields) locationTextFields.hidden = true;
+          if (locationTextInput) locationTextInput.value = '';
+          document.getElementById('community').value = 'Acapulco';
+          document.getElementById('locality').value = 'Prefiere no decir';
+          document.getElementById('coordinate-type').value = 'unknown';
+          setMessage('Puedes enviar tu audio sin compartir ubicacion.', 'info');
+          updatePreview();
+        }
+      }
+    }
+
+    function setupLocationChoices() {
+      var buttons = Array.prototype.slice.call(document.querySelectorAll('[data-location-mode]'));
+      buttons.forEach(function(button) {
+        button.addEventListener('click', function() {
+          setLocationMode(button.getAttribute('data-location-mode'));
+        });
+      });
+      if (locationTextInput) {
+        locationTextInput.addEventListener('input', applyLocationTextValue);
+      }
+      setActiveButton(buttons, buttons.find(function(button) {
+        return button.getAttribute('data-location-mode') === selectedLocationMode;
+      }));
+    }
+
     function setDefaultCaptureValues() {
       var today = new Date().toISOString().slice(0, 10);
       if (!value('interview-date')) document.getElementById('interview-date').value = today;
@@ -2079,6 +2226,7 @@
       if (!value('municipality')) document.getElementById('municipality').value = 'Acapulco de Juárez';
       if (!value('locality')) document.getElementById('locality').value = 'No especificada';
       if (!value('interviewer')) document.getElementById('interviewer').value = 'Participante';
+      document.getElementById('coordinate-type').value = 'unknown';
       document.getElementById('consent-contact').checked = false;
       document.getElementById('consent-public').checked = true;
     }
@@ -2101,13 +2249,111 @@
       return '';
     }
 
-    function setRecordedFile(blob, mimeType) {
-      var extension = mimeType.indexOf('ogg') !== -1 ? 'ogg' : 'webm';
-      var file = new File([blob], 'historia-punto-cero.' + extension, { type: mimeType || blob.type || 'audio/webm' });
-      var transfer = new DataTransfer();
-      transfer.items.add(file);
-      audioInput.files = transfer.files;
+    function updateAudioPreview(file) {
+      if (!audioPreview || !window.URL) return;
+      if (audioPreviewUrl) {
+        URL.revokeObjectURL(audioPreviewUrl);
+        audioPreviewUrl = null;
+      }
+      if (!file || !file.size) {
+        audioPreview.removeAttribute('src');
+        audioPreview.hidden = true;
+        return;
+      }
+      audioPreviewUrl = URL.createObjectURL(file);
+      audioPreview.src = audioPreviewUrl;
+      audioPreview.hidden = false;
+    }
+
+    function normalizeRecordingMimeType(blob, mimeType) {
+      var detected = mimeType || blob.type || 'audio/webm';
+      return detected.split(';')[0] || 'audio/webm';
+    }
+
+    function writeAscii(view, offset, text) {
+      for (var i = 0; i < text.length; i++) {
+        view.setUint8(offset + i, text.charCodeAt(i));
+      }
+    }
+
+    function audioBufferToWavBlob(audioBuffer) {
+      var numChannels = Math.min(audioBuffer.numberOfChannels || 1, 2);
+      var sampleRate = audioBuffer.sampleRate;
+      var bytesPerSample = 2;
+      var blockAlign = numChannels * bytesPerSample;
+      var dataSize = audioBuffer.length * blockAlign;
+      var buffer = new ArrayBuffer(44 + dataSize);
+      var view = new DataView(buffer);
+      var offset = 0;
+
+      writeAscii(view, offset, 'RIFF'); offset += 4;
+      view.setUint32(offset, 36 + dataSize, true); offset += 4;
+      writeAscii(view, offset, 'WAVE'); offset += 4;
+      writeAscii(view, offset, 'fmt '); offset += 4;
+      view.setUint32(offset, 16, true); offset += 4;
+      view.setUint16(offset, 1, true); offset += 2;
+      view.setUint16(offset, numChannels, true); offset += 2;
+      view.setUint32(offset, sampleRate, true); offset += 4;
+      view.setUint32(offset, sampleRate * blockAlign, true); offset += 4;
+      view.setUint16(offset, blockAlign, true); offset += 2;
+      view.setUint16(offset, 16, true); offset += 2;
+      writeAscii(view, offset, 'data'); offset += 4;
+      view.setUint32(offset, dataSize, true); offset += 4;
+
+      var channels = [];
+      for (var channel = 0; channel < numChannels; channel++) {
+        channels.push(audioBuffer.getChannelData(channel));
+      }
+      for (var sample = 0; sample < audioBuffer.length; sample++) {
+        for (var ch = 0; ch < numChannels; ch++) {
+          var value = Math.max(-1, Math.min(1, channels[ch][sample] || 0));
+          view.setInt16(offset, value < 0 ? value * 0x8000 : value * 0x7fff, true);
+          offset += bytesPerSample;
+        }
+      }
+
+      return new Blob([buffer], { type: 'audio/wav' });
+    }
+
+    async function convertRecordingToWavFile(blob) {
+      var AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor || !blob.arrayBuffer) return null;
+      var audioContext = new AudioContextCtor();
+      try {
+        var arrayBuffer = await blob.arrayBuffer();
+        var decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+        var wavBlob = audioBufferToWavBlob(decoded);
+        return new File([wavBlob], 'historia-punto-cero.wav', { type: 'audio/wav' });
+      } finally {
+        if (audioContext.close) audioContext.close();
+      }
+    }
+
+    async function buildRecordedFile(blob, mimeType) {
+      var normalizedType = normalizeRecordingMimeType(blob, mimeType);
+      if (normalizedType.indexOf('webm') !== -1) {
+        var wavFile = await convertRecordingToWavFile(blob);
+        if (wavFile) return wavFile;
+        throw new Error('No se pudo convertir webm a wav');
+      }
+      var extension = normalizedType.indexOf('ogg') !== -1 ? 'ogg' : 'wav';
+      var outputType = normalizedType.indexOf('ogg') !== -1 ? normalizedType : 'audio/wav';
+      return new File([blob], 'historia-punto-cero.' + extension, { type: outputType });
+    }
+
+    function setRecordedFile(file) {
+      recordedAudioFile = file;
+      try {
+        if (window.DataTransfer) {
+          var transfer = new DataTransfer();
+          transfer.items.add(file);
+          audioInput.files = transfer.files;
+        }
+      } catch (error) {
+        audioInput.value = '';
+      }
       uploadedAudioCache = null;
+      updateAudioPreview(file);
       validateAudioFile();
       audioReady();
       updatePreview();
@@ -2147,7 +2393,7 @@
         mediaRecorder.addEventListener('dataavailable', function(event) {
           if (event.data && event.data.size) recordingChunks.push(event.data);
         });
-        mediaRecorder.addEventListener('stop', function() {
+        mediaRecorder.addEventListener('stop', async function() {
           window.clearInterval(recordingTimer);
           if (recordingStream) recordingStream.getTracks().forEach(function(track) { track.stop(); });
           var finalType = mediaRecorder.mimeType || mimeType || 'audio/webm';
@@ -2155,8 +2401,16 @@
           recordButton.classList.remove('is-recording');
           recordButton.textContent = '🎤 GRABAR MI HISTORIA';
           if (blob.size > 0) {
-            setRecordedFile(blob, finalType);
-            setMessage('Audio grabado. Puedes enviarlo o volver a grabar.', 'ok');
+            try {
+              if (normalizeRecordingMimeType(blob, finalType).indexOf('webm') !== -1) {
+                setMessage('Audio grabado. Preparandolo para envio...', 'info');
+              }
+              var recordedFile = await buildRecordedFile(blob, finalType);
+              setRecordedFile(recordedFile);
+              setMessage('Audio grabado. Puedes escucharlo, enviarlo o volver a grabar.', 'ok');
+            } catch (error) {
+              setMessage('No se pudo preparar la grabacion. Intenta otra vez o sube un audio mp3, m4a, wav u ogg.', 'err');
+            }
           } else {
             setMessage('No se pudo guardar la grabacion. Intenta otra vez o sube un audio.', 'err');
           }
@@ -2172,6 +2426,7 @@
     }
 
     function getAudioFile() {
+      if (recordedAudioFile && recordedAudioFile.size) return recordedAudioFile;
       return audioInput.files && audioInput.files[0] ? audioInput.files[0] : null;
     }
 
@@ -2390,6 +2645,15 @@
         return 'Parece que este envio ya fue registrado o quedo a medio confirmar. No vuelvas a grabar: guarda el respaldo y pide al equipo revisar pendientes.';
       }
       if (error && error.stage === 'upload') {
+        if (
+          lower.indexOf('mime') !== -1 ||
+          lower.indexOf('content-type') !== -1 ||
+          lower.indexOf('not allowed') !== -1 ||
+          lower.indexOf('invalid') !== -1 ||
+          lower.indexOf('webm') !== -1
+        ) {
+          return 'El audio esta listo, pero el servidor no acepto ese formato. Intenta subir mp3, m4a, wav u ogg.';
+        }
         return 'No pudimos subir el audio. Revisa tu conexion, el formato del archivo y vuelve a intentar.';
       }
       if (error && error.stage === 'insert') {
@@ -2440,22 +2704,23 @@
     async function sendToSupabase() {
       if (isSubmitting) return;
 
+      var file = getAudioFile();
+      if (!file || !file.size) {
+        validateAudioFile();
+        setMessage('Primero graba o sube un audio para poder enviarlo.', 'err');
+        return;
+      }
+
       var validation = validateAudioFile();
-      if (!form.reportValidity()) return;
       if (validation.error) {
         setMessage(validation.error, 'err');
         return;
       }
+      if (!form.reportValidity()) return;
 
       var coordinateError = validateCoordinateFields();
       if (coordinateError) {
         setMessage(coordinateError, 'err');
-        return;
-      }
-
-      var file = getAudioFile();
-      if (!file) {
-        setMessage('Selecciona un archivo de audio antes de enviar.', 'err');
         return;
       }
 
@@ -2568,12 +2833,18 @@
     });
 
     downloadButton.addEventListener('click', function () {
+      var file = getAudioFile();
+      if (!file || !file.size) {
+        validateAudioFile();
+        setMessage('Primero graba o sube un audio para poder enviarlo.', 'err');
+        return;
+      }
       var validation = validateAudioFile();
-      if (!form.reportValidity()) return;
       if (validation.error) {
         setMessage(validation.error, 'err');
         return;
       }
+      if (!form.reportValidity()) return;
       var coordinateError = validateCoordinateFields();
       if (coordinateError) {
         setMessage(coordinateError, 'err');
@@ -2588,8 +2859,10 @@
     });
 
     audioInput.addEventListener('change', function () {
+      recordedAudioFile = null;
       uploadedAudioCache = null;
       var validation = validateAudioFile();
+      updateAudioPreview(getAudioFile());
       updatePreview();
       if (validation.error) {
         setMessage(validation.error, 'err');
@@ -2611,6 +2884,8 @@
     initWelcomeAudioPlayer();
     setDefaultCaptureValues();
     setupChoiceButtons();
+    setupLocationChoices();
+    validateAudioFile();
     updatePreview();
   </script>
 </body>
