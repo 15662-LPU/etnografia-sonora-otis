@@ -214,6 +214,7 @@
     .origin-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 8px; font-size: .66rem; font-weight: 800; border: 1px solid #30363d; background: #21262d; color: #c9d1d9; }
     .origin-pill.citizen { border-color: #f0883e88; background: rgba(240, 136, 62, .16); color: #ffb77c; }
     .origin-pill.archive { border-color: #58a6ff66; background: rgba(88, 166, 255, .12); color: #9dccff; }
+    .protected-audio-note { margin-top: 8px; color: #ffb77c; font-size: .72rem; line-height: 1.4; }
 
     /* Bienvenida al mapa */
     #map-help-button {
@@ -2933,6 +2934,19 @@ function getOriginInfo(p) {
   };
 }
 
+function isCitizenSubmission(p) {
+  return getSourceTypeKey(p) === 'citizen_submission';
+}
+
+function protectedAudioAttrs(p) {
+  return isCitizenSubmission(p) ? ' controlsList="nodownload" oncontextmenu="return false"' : '';
+}
+
+function protectedAudioNoteHTML(p) {
+  if (!isCitizenSubmission(p)) return '';
+  return '<div class="protected-audio-note">Audio protegido para escucha dentro del archivo. No se ofrece descarga directa.</div>';
+}
+
 function mobileSourceLabel(p) {
   if (getSourceTypeKey(p) === 'citizen_submission') return 'Participación ciudadana';
   var text = [p.title, p.recorder, p.description, (p.tags || []).join(' ')].join(' ').toLowerCase();
@@ -3916,7 +3930,8 @@ function renderMobilePointCard(p) {
     '<div class="mobile-point-actions">' +
       listenControl +
       '<button type="button" data-mobile-action="details">Detalles</button>' +
-    '</div>';
+    '</div>' +
+    protectedAudioNoteHTML(p);
 
   card.querySelectorAll('[data-mobile-action="details"]').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -4066,10 +4081,14 @@ function buildPopupHTML(p) {
       '</a>';
   } else if (p.audio) {
     if (p.audio_kind === 'file') {
+      var directAudioLink = isCitizenSubmission(p)
+        ? ''
+        : '<a class="spotify-link" data-analytics-audio="1" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>';
       audioBlock =
         '<div class="audio-wrap">' +
-          '<audio controls preload="metadata" src="' + p.audio + '"></audio>' +
-          '<a class="spotify-link" data-analytics-audio="1" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>' +
+          '<audio controls preload="metadata" src="' + p.audio + '"' + protectedAudioAttrs(p) + '></audio>' +
+          directAudioLink +
+          protectedAudioNoteHTML(p) +
         '</div>';
     } else {
       audioBlock =
@@ -4160,14 +4179,16 @@ function buildMobileSheetHTML(p) {
           'loading="lazy"></iframe>' +
       '</div>';
   } else if (p.audio) {
-    listenButton =
-      '<a class="mobile-listen-primary" data-analytics-audio="1" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">' +
-        '&#9654; Abrir audio' +
-      '</a>';
+    listenButton = isCitizenSubmission(p)
+      ? '<div class="mobile-listen-primary disabled">Escucha disponible en esta ficha</div>'
+      : '<a class="mobile-listen-primary" data-analytics-audio="1" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">' +
+          '&#9654; Abrir audio' +
+        '</a>';
     if (p.audio_kind === 'file') {
       player =
         '<div class="mobile-sheet-player audio-wrap">' +
-          '<audio controls preload="metadata" src="' + p.audio + '"></audio>' +
+          '<audio controls preload="metadata" src="' + p.audio + '"' + protectedAudioAttrs(p) + '></audio>' +
+          protectedAudioNoteHTML(p) +
         '</div>';
     } else {
       player =
