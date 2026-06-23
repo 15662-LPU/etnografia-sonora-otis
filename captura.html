@@ -707,6 +707,11 @@
       transition: background .15s, border-color .15s;
     }
     button:hover { background: #30363d; }
+    button:disabled {
+      opacity: .62;
+      cursor: wait;
+    }
+    button:disabled:hover { background: #21262d; }
     .primary {
       background: #1f6feb;
       border-color: #1f6feb;
@@ -745,6 +750,7 @@
       color: #8b949e;
       font-size: .8rem;
     }
+    .message.info { color: #79c0ff; }
     .message.ok { color: #3fb950; }
     .message.err { color: #ff7b72; }
     @media (max-width: 860px) {
@@ -1161,6 +1167,7 @@
     var form = document.getElementById('capture-form');
     var previewButton = document.getElementById('preview-button');
     var downloadButton = document.getElementById('download-button');
+    var submitButton = form.querySelector('button[type="submit"]');
     var gpsButton = document.getElementById('gps-button');
     var coordHelperInput = document.getElementById('coord-helper-input');
     var coordHelperButton = document.getElementById('coord-helper-button');
@@ -1182,6 +1189,8 @@
     var currentSubmissionId = createUuid();
     var locationPickerMap = null;
     var locationPickerMarker = null;
+    var isSubmitting = false;
+    var uploadedAudioCache = null;
 
     function formatAudioTime(seconds) {
       if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
@@ -1257,6 +1266,16 @@
     function setMessage(text, type) {
       message.textContent = text || '';
       message.className = 'message' + (type ? ' ' + type : '');
+    }
+
+    function setSubmittingState(active, label) {
+      isSubmitting = active;
+      if (submitButton) {
+        submitButton.disabled = active;
+        submitButton.textContent = active ? (label || 'Enviando...') : 'Enviar mi historia';
+      }
+      previewButton.disabled = active;
+      downloadButton.disabled = active;
     }
 
     function value(id) {
@@ -1405,6 +1424,22 @@
       return Number.isFinite(n) ? n : null;
     }
 
+    function validateCoordinateFields() {
+      var rawLat = value('latitude');
+      var rawLng = value('longitude');
+      if (!rawLat && !rawLng) return null;
+
+      var lat = numberOrNull(rawLat);
+      var lng = numberOrNull(rawLng);
+      if (lat === null || lng === null) {
+        return 'Revisa la latitud y longitud. Si no quieres compartir coordenadas, deja ambos campos vacios.';
+      }
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return 'Las coordenadas parecen estar fuera de rango. Revisa el punto o deja los campos vacios.';
+      }
+      return null;
+    }
+
     function parseCoordinatePair(raw) {
       var text = String(raw || '').trim();
       if (!text) return null;
@@ -1499,10 +1534,38 @@
       return audioInput.files && audioInput.files[0] ? audioInput.files[0] : null;
     }
 
+    function audioCacheKey(file) {
+      if (!file) return '';
+      return [
+        file.name || 'audio',
+        file.size || 0,
+        file.type || '',
+        file.lastModified || 0
+      ].join('|');
+    }
+
     function buildAudioPath(submissionId, file) {
       var extension = getAudioExtension(file) || 'audio';
       var basename = safeFileName(file && file.name ? file.name : 'testimonio.' + extension);
       return 'pending/' + submissionId + '/' + Date.now() + '-' + basename;
+    }
+
+    function legacyTestimonyType() {
+      var legacyAllowed = {
+        comunitario: true,
+        familiar: true,
+        productor_rural: true,
+        pescador: true,
+        comerciante: true,
+        estudiante: true,
+        servidor_publico: true,
+        otro: true
+      };
+      var profile = value('participant-profile');
+      var relato = value('testimony-type');
+      if (legacyAllowed[profile]) return profile;
+      if (legacyAllowed[relato]) return relato;
+      return 'otro';
     }
 
     function buildDatabasePayload(submission, audioPath) {
@@ -1522,7 +1585,7 @@
         locality: value('locality') || null,
         place_label: submission.places.story_about[0].label,
         description: value('description') || null,
-        testimony_type: value('testimony-type') || null,
+        testimony_type: legacyTestimonyType(),
         tipo_relato: value('testimony-type') || null,
         perfil_participante: value('participant-profile') || null,
         latitude: lat,
@@ -1665,8 +1728,37 @@
       URL.revokeObjectURL(url);
     }
 
-    async function uploadAudioToSupabase(submission, file) {
-      var audioPath = buildAudioPath(submission.id, file);
+    function buildServiceError(stage, response, detail) {
+      var error = new Error(detail || 'Error de servicio');
+      error.stage = stage;
+      error.status = response && response.status;
+      return error;
+    }
+
+    function userFacingSubmitError(error) {
+      var detail = error && error.message ? error.message : '';
+      var lower = detail.toLowerCase();
+
+      if (lower.indexOf('failed to fetch') !== -1 || lower.indexOf('networkerror') !== -1) {
+        return 'No pudimos conectar con el servidor. Revisa tu internet e intenta de nuevo.';
+      }
+      if (lower.indexOf('submissions_testimony_type_check') !== -1) {
+        return 'El tipo de relato no coincide con la configuracion de la base. Ya dejamos una correccion local para revisar antes de publicar.';
+      }
+      if (lower.indexOf('duplicate key') !== -1 || lower.indexOf('23505') !== -1) {
+        return 'Parece que este envio ya fue registrado o quedo a medio confirmar. No vuelvas a grabar: guarda el respaldo y pide al equipo revisar pendientes.';
+      }
+      if (error && error.stage === 'upload') {
+        return 'No pudimos subir el audio. Revisa tu conexion, el formato del archivo y vuelve a intentar.';
+      }
+      if (error && error.stage === 'insert') {
+        return 'El audio se cargo, pero no pudimos guardar la ficha del testimonio. Intenta enviar otra vez; no selecciones otro archivo.';
+      }
+      return 'No pudimos completar el envio. Puedes guardar el respaldo sin internet e intentar de nuevo mas tarde.';
+    }
+
+    async function uploadAudioToSupabase(submission, file, existingAudioPath) {
+      var audioPath = existingAudioPath || buildAudioPath(submission.id, file);
       var response = await fetch(SUPABASE_URL + '/storage/v1/object/' + SUPABASE_BUCKET + '/' + audioPath, {
         method: 'POST',
         headers: {
@@ -1680,7 +1772,7 @@
 
       if (!response.ok) {
         var uploadText = await response.text();
-        throw new Error('No se pudo subir el audio: ' + uploadText);
+        throw buildServiceError('upload', response, uploadText);
       }
 
       return audioPath;
@@ -1700,15 +1792,23 @@
 
       if (!response.ok) {
         var insertText = await response.text();
-        throw new Error('No se pudo guardar el registro: ' + insertText);
+        throw buildServiceError('insert', response, insertText);
       }
     }
 
     async function sendToSupabase() {
+      if (isSubmitting) return;
+
       var validation = validateAudioFile();
       if (!form.reportValidity()) return;
       if (validation.error) {
         setMessage(validation.error, 'err');
+        return;
+      }
+
+      var coordinateError = validateCoordinateFields();
+      if (coordinateError) {
+        setMessage(coordinateError, 'err');
         return;
       }
 
@@ -1719,17 +1819,31 @@
       }
 
       var submission = updatePreview();
-      setMessage('Subiendo audio de forma privada...', '');
+      var fileKey = audioCacheKey(file);
+      var cachedAudioPath = uploadedAudioCache
+        && uploadedAudioCache.submissionId === submission.id
+        && uploadedAudioCache.fileKey === fileKey
+        ? uploadedAudioCache.audioPath
+        : null;
+
+      setSubmittingState(true, 'Enviando...');
+      setMessage(cachedAudioPath ? 'Usando el audio ya cargado. Guardando ficha...' : 'Subiendo audio de forma privada...', 'info');
 
       try {
-        var audioPath = await uploadAudioToSupabase(submission, file);
+        var audioPath = cachedAudioPath || await uploadAudioToSupabase(submission, file);
+        uploadedAudioCache = {
+          submissionId: submission.id,
+          fileKey: fileKey,
+          audioPath: audioPath
+        };
+        submission.audio.bucket = SUPABASE_BUCKET;
+        submission.audio.path = audioPath;
+
         var payload = buildDatabasePayload(submission, audioPath);
-        setMessage('Guardando metadatos para revisión...', '');
+        setMessage('Guardando ficha para revision...', 'info');
         await insertSubmissionToSupabase(payload);
         trackAnalyticsEvent('submit_testimony', null);
 
-        submission.audio.bucket = SUPABASE_BUCKET;
-        submission.audio.path = audioPath;
         submission.capture.storage_mode = 'supabase';
         submission.capture.server_saved = true;
         submission.database_payload = payload;
@@ -1737,12 +1851,16 @@
 
         setMessage('Testimonio enviado para revisión. No fue publicado automáticamente en el mapa.', 'ok');
         currentSubmissionId = createUuid();
+        uploadedAudioCache = null;
       } catch (error) {
         submission.capture.storage_mode = 'local_download_after_error';
         submission.capture.server_saved = false;
         submission.capture.last_error = error.message;
+        submission.capture.last_error_stage = error.stage || null;
         preview.textContent = JSON.stringify(submission, null, 2);
-        setMessage('No se pudo enviar a Supabase. Puedes descargar el JSON para subir después. Detalle: ' + error.message, 'err');
+        setMessage(userFacingSubmitError(error) + ' Tambien puedes guardar un respaldo sin internet.', 'err');
+      } finally {
+        setSubmittingState(false);
       }
     }
 
@@ -1805,6 +1923,11 @@
         setMessage(validation.error, 'err');
         return;
       }
+      var coordinateError = validateCoordinateFields();
+      if (coordinateError) {
+        setMessage(coordinateError, 'err');
+        return;
+      }
       var submission = updatePreview();
       submission.capture.storage_mode = 'manual_json_download';
       submission.capture.server_saved = false;
@@ -1814,6 +1937,7 @@
     });
 
     audioInput.addEventListener('change', function () {
+      uploadedAudioCache = null;
       var validation = validateAudioFile();
       updatePreview();
       if (validation.error) {
