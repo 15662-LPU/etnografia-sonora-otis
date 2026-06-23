@@ -208,6 +208,12 @@
     #legend h4 { font-size: .75rem; color: #f0f6fc; margin-bottom: 8px; font-weight: 700; }
     .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: #c9d1d9; }
     .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .origin-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+    .origin-dot.archive { background: #58a6ff; border: 2px solid #f0f6fc; }
+    .origin-dot.citizen { background: #f0883e; border: 2px solid #f0f6fc; box-shadow: 0 0 0 3px rgba(240, 136, 62, .22); }
+    .origin-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 8px; font-size: .66rem; font-weight: 800; border: 1px solid #30363d; background: #21262d; color: #c9d1d9; }
+    .origin-pill.citizen { border-color: #f0883e88; background: rgba(240, 136, 62, .16); color: #ffb77c; }
+    .origin-pill.archive { border-color: #58a6ff66; background: rgba(88, 166, 255, .12); color: #9dccff; }
 
     /* Bienvenida al mapa */
     #map-help-button {
@@ -1457,7 +1463,9 @@
   </div>
   <button id="fab-add" title="Agregar punto sonoro">+</button>
   <div id="fab-hint">Haz clic en el mapa para colocar el punto</div>
-  <div id="content-legend" aria-label="Tipos de contenidos sonoros">
+  <div id="content-legend" aria-label="Origen y tipos de contenidos sonoros">
+    <div class="content-legend-item"><span class="origin-dot archive"></span><span>Archivo sonoro / medios</span></div>
+    <div class="content-legend-item"><span class="origin-dot citizen"></span><span>Participación ciudadana</span></div>
     <div class="content-legend-item"><span>&#127908;</span><span>Testimonios</span></div>
     <div class="content-legend-item"><span>&#128251;</span><span>Radio</span></div>
     <div class="content-legend-item"><span>&#127911;</span><span>Podcast</span></div>
@@ -2432,6 +2440,11 @@ var SOUND_POINTS = [
   },
 ];
 
+SOUND_POINTS.forEach(function(point) {
+  if (!point.source_type) point.source_type = 'archive';
+  if (!point.origin) point.origin = 'archivo_sonoro';
+});
+
 /* =================================================================
    TESTIMONIOS APROBADOS — Supabase
    Carga solo registros status=approved desde la vista publica segura.
@@ -2590,6 +2603,8 @@ function approvedRowToPoint(row, signedUrl) {
     audio: signedUrl,
     audio_kind: 'file',
     source: 'supabase',
+    source_type: 'citizen_submission',
+    origin: 'participacion_ciudadana',
     approved_submission_id: row.id
   };
 }
@@ -2892,8 +2907,34 @@ function syncMobileControls() {
   });
 }
 
+function getSourceTypeKey(p) {
+  if (!p) return 'archive';
+  if (p.source_type) return p.source_type;
+  if (p.origin === 'participacion_ciudadana' || p.source === 'supabase') return 'citizen_submission';
+  return 'archive';
+}
+
+function getOriginInfo(p) {
+  if (getSourceTypeKey(p) === 'citizen_submission') {
+    return {
+      key: 'citizen_submission',
+      label: 'Participación ciudadana',
+      shortLabel: 'Ciudadano',
+      color: '#f0883e',
+      dotClass: 'citizen'
+    };
+  }
+  return {
+    key: 'archive',
+    label: 'Archivo sonoro',
+    shortLabel: 'Archivo',
+    color: '#58a6ff',
+    dotClass: 'archive'
+  };
+}
+
 function mobileSourceLabel(p) {
-  if (p.source === 'supabase') return 'Testimonio ciudadano';
+  if (getSourceTypeKey(p) === 'citizen_submission') return 'Participación ciudadana';
   var text = [p.title, p.recorder, p.description, (p.tags || []).join(' ')].join(' ').toLowerCase();
   if (text.indexOf('corrido') !== -1 || text.indexOf('cumbia') !== -1 || text.indexOf('musica') !== -1 || text.indexOf('música') !== -1 || text.indexOf('cancion') !== -1 || text.indexOf('canción') !== -1) return 'Música';
   if (text.indexOf('radio') !== -1 || text.indexOf('mvs') !== -1 || text.indexOf('ciro') !== -1 || text.indexOf('formula') !== -1 || text.indexOf('fórmula') !== -1) return 'Radio';
@@ -2917,10 +2958,22 @@ function pointsToGeoJSON(pts) {
     type: 'FeatureCollection',
     features: pts.map(function(p) {
       var cat = CATEGORIES[p.category] || { color: '#8b949e' };
+      var sourceType = getSourceTypeKey(p);
+      var audioType = sourceType === 'citizen_submission' ? 'community' : (p.spotify ? 'spotify' : (p.audio ? 'file' : 'none'));
       return {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: p.coords },
-        properties: { id: p.id, color: cat.color, category: p.category, spotify: (p.spotify || p.audio) ? 1 : 0, importance: p.importance || 0 }
+        properties: {
+          id: p.id,
+          color: cat.color,
+          category: p.category,
+          source: p.source || 'static',
+          source_type: sourceType,
+          origin: p.origin || (sourceType === 'citizen_submission' ? 'participacion_ciudadana' : 'archivo_sonoro'),
+          audio_type: audioType,
+          spotify: p.spotify ? 1 : 0,
+          importance: p.importance || 0
+        }
       };
     })
   };
@@ -3191,11 +3244,14 @@ function renderList(points) {
     item.setAttribute('tabindex', '0');
     item.setAttribute('aria-label', 'Escuchar ' + p.title);
     item.style.setProperty('--cat-color', cat.color);
-    var badge = p.spotify ? ' <span style="color:#1db954;font-size:.65rem">[S]</span>' : '';
+    var origin = getOriginInfo(p);
+    var badge = origin.key === 'citizen_submission'
+      ? ' <span style="color:#f0883e;font-size:.65rem">[Participación ciudadana]</span>'
+      : (p.spotify ? ' <span style="color:#1db954;font-size:.65rem">[Spotify]</span>' : '');
     item.innerHTML =
       '<div class="point-dot"></div>' +
       '<div class="point-body"><h3>' + p.title + badge + '</h3>' +
-      '<span class="point-meta">' + cat.label + ' &middot; ' + p.location + '</span>' +
+      '<span class="point-meta">' + origin.label + ' &middot; ' + cat.label + ' &middot; ' + p.location + '</span>' +
       '<span class="point-source-mobile">' + mobileSourceLabel(p) + ' &middot; ' + p.recorder + '</span>' +
       '<span class="point-tap">Tocar para escuchar</span></div>' +
       '<span class="point-action" aria-hidden="true">&#9654; Escuchar</span>';
@@ -3364,7 +3420,7 @@ function navigateRoute(direction) {
 ================================================================= */
 function addMapLayers() {
   /* Limpiar capas y fuentes previas */
-  ['clusters', 'cluster-count', 'spotify-ring', 'unclustered-point'].forEach(function(id) {
+  ['clusters', 'cluster-count', 'spotify-ring', 'community-testimony-ring', 'unclustered-point', 'citizen-submission-icon'].forEach(function(id) {
     if (map.getLayer(id)) map.removeLayer(id);
   });
   if (map.getSource('sounds')) map.removeSource('sounds');
@@ -3434,12 +3490,26 @@ function addMapLayers() {
     id: 'spotify-ring',
     type: 'circle',
     source: 'sounds',
-    filter: ['all', ['!has', 'point_count'], ['==', 'spotify', 1]],
+    filter: ['all', ['!has', 'point_count'], ['==', 'audio_type', 'spotify']],
     paint: {
       'circle-color': 'rgba(0,0,0,0)',
       'circle-radius': 15,
       'circle-stroke-width': 2.5,
       'circle-stroke-color': '#1db954'
+    }
+  });
+
+  /* Anillo ambar para testimonios ciudadanos aprobados desde Supabase */
+  map.addLayer({
+    id: 'community-testimony-ring',
+    type: 'circle',
+    source: 'sounds',
+    filter: ['all', ['!has', 'point_count'], ['==', 'source_type', 'citizen_submission']],
+    paint: {
+      'circle-color': 'rgba(0,0,0,0)',
+      'circle-radius': 18,
+      'circle-stroke-width': 4,
+      'circle-stroke-color': '#f0883e'
     }
   });
 
@@ -3450,26 +3520,60 @@ function addMapLayers() {
     source: 'sounds',
     filter: ['!has', 'point_count'],
     paint: {
-      'circle-color': ['get', 'color'],
+      'circle-color': [
+        'case',
+        ['==', ['get', 'source_type'], 'citizen_submission'],
+        '#f0883e',
+        ['get', 'color']
+      ],
       'circle-radius': [
         'case',
+        ['==', ['get', 'source_type'], 'citizen_submission'],
+        13,
         ['>=', ['get', 'importance'], 4],
         14,  /* Puntos clave de la ruta: más grandes */
         10   /* Puntos normales */
       ],
       'circle-stroke-width': [
         'case',
+        ['==', ['get', 'source_type'], 'citizen_submission'],
+        3.5,
         ['>=', ['get', 'importance'], 4],
         3.5,
         2.5
       ],
-      'circle-stroke-color': '#fff',
+      'circle-stroke-color': [
+        'case',
+        ['==', ['get', 'source_type'], 'citizen_submission'],
+        '#0d1117',
+        '#fff'
+      ],
       'circle-opacity': [
         'case',
         ['>=', ['get', 'importance'], 4],
         1,
         0.9
       ]
+    }
+  });
+
+  /* Simbolo interior para participaciones ciudadanas */
+  map.addLayer({
+    id: 'citizen-submission-icon',
+    type: 'symbol',
+    source: 'sounds',
+    filter: ['all', ['!has', 'point_count'], ['==', 'source_type', 'citizen_submission']],
+    layout: {
+      'text-field': '+',
+      'text-size': 15,
+      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+      'text-allow-overlap': true,
+      'text-ignore-placement': true
+    },
+    paint: {
+      'text-color': '#0d1117',
+      'text-halo-color': '#f0f6fc',
+      'text-halo-width': .8
     }
   });
 
@@ -3798,15 +3902,17 @@ function renderMobilePointCard(p) {
   if (!card) return;
   var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
   var srcType = getSourceType(p);
+  var origin = getOriginInfo(p);
   var listenHref = p.spotify ? p.spotify.split('?')[0] : (p.audio && p.audio_kind !== 'file' ? p.audio : '');
   var listenControl = listenHref ?
     '<a class="listen" data-analytics-audio="1" href="' + listenHref + '" target="_blank" rel="noopener noreferrer">Escuchar</a>' :
     '<button class="listen" type="button" data-mobile-action="details">Escuchar</button>';
 
   card.innerHTML =
+    '<div class="origin-pill ' + origin.dotClass + '"><span class="origin-dot ' + origin.dotClass + '"></span>' + origin.label + '</div>' +
     '<div class="mobile-point-kicker" style="color:' + cat.color + '">' + cat.emoji + ' ' + cat.label + '</div>' +
     '<div class="mobile-point-title">' + p.title + '</div>' +
-    '<div class="mobile-point-meta">' + srcType.label + ' &middot; ' + p.location + '<br>' + p.recorder + '</div>' +
+    '<div class="mobile-point-meta">' + srcType.label + ' &middot; ' + origin.label + ' &middot; ' + p.location + '<br>' + p.recorder + '</div>' +
     '<div class="mobile-point-actions">' +
       listenControl +
       '<button type="button" data-mobile-action="details">Detalles</button>' +
@@ -3881,6 +3987,7 @@ function parseDurationMinutes(dur) {
 /* Clasifica el tipo de fuente por categoría y tags */
 function getSourceType(p) {
   if (p.id === 28) return { label: 'Autoetnografía', color: '#d2a8ff', icon: '✍️' };
+  if (getSourceTypeKey(p) === 'citizen_submission') return { label: 'Testimonio ciudadano', color: '#f0883e', icon: '🎙️' };
   var tags = p.tags.join(' ').toLowerCase();
   var title = p.title.toLowerCase();
   if (tags.includes('corrido') || tags.includes('cancion') || tags.includes('musica')) return { label: 'Música Popular', color: '#1db954', icon: '🎵' };
@@ -3897,6 +4004,7 @@ function getSourceType(p) {
 function buildPopupHTML(p) {
   var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
   var srcType = getSourceType(p);
+  var origin = getOriginInfo(p);
 
   /* Barra de control accesible (siempre visible, especialmente en móvil) */
   var closebar =
@@ -3983,6 +4091,9 @@ function buildPopupHTML(p) {
     '<span style="background:' + period.color + '18;border:1px solid ' + period.color + '44;color:' + period.color + ';padding:2px 7px;border-radius:10px;font-size:.65rem">' + period.label + '</span>' : '';
 
   return closebar + coverImg +
+    '<div style="display:flex;justify-content:flex-start;margin-bottom:8px">' +
+      '<span class="origin-pill ' + origin.dotClass + '"><span class="origin-dot ' + origin.dotClass + '"></span>' + origin.label + '</span>' +
+    '</div>' +
     /* Cabecera con categoría y tipo de fuente */
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
       '<div class="popup-category" style="color:' + cat.color + ';margin:0">' + cat.emoji + ' ' + cat.label + '</div>' +
@@ -4023,6 +4134,7 @@ function buildPopupHTML(p) {
 function buildMobileSheetHTML(p) {
   var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
   var srcType = getSourceType(p);
+  var origin = getOriginInfo(p);
   var mins = parseDurationMinutes(p.duration);
   var durationLabel = mins !== null ? Math.round(mins) + ' min' : 'Duración no registrada';
   var tags = (p.tags || []).map(function(t) {
@@ -4067,6 +4179,9 @@ function buildMobileSheetHTML(p) {
   }
 
   return (
+    '<div style="margin-bottom:8px">' +
+      '<span class="origin-pill ' + origin.dotClass + '"><span class="origin-dot ' + origin.dotClass + '"></span>' + origin.label + '</span>' +
+    '</div>' +
     '<div class="mobile-sheet-kicker">' +
       '<span style="color:' + cat.color + '">' + cat.emoji + ' ' + cat.label + '</span>' +
       '<span style="color:' + srcType.color + '">' + srcType.icon + ' ' + srcType.label + '</span>' +
@@ -4079,6 +4194,7 @@ function buildMobileSheetHTML(p) {
       '<span>Fecha: ' + p.date + '</span>' +
       '<span>Duración: ' + durationLabel + '</span>' +
       '<span>Voz/fuente: ' + p.recorder + '</span>' +
+      '<span>Origen: ' + origin.label + '</span>' +
       '<span>Tipo: ' + srcType.label + '</span>' +
     '</div>' +
     player +
