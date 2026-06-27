@@ -424,15 +424,8 @@
       flex-shrink: 0;
       border-bottom: 1px solid #30363d;
     }
-    /* franja de arrastre visual */
     #audio-sheet-bar::before {
-      content: '';
-      position: absolute;
-      left: 50%; transform: translateX(-50%);
-      top: 8px;
-      width: 36px; height: 4px;
-      background: #30363d;
-      border-radius: 2px;
+      content: none;
     }
     #audio-sheet-close {
       background: #21262d;
@@ -812,22 +805,22 @@
         color: #fff;
       }
       #audio-sheet {
-        height: 90dvh;
-        max-height: 90dvh;
+        display: flex;
+        height: 65dvh;
+        max-height: 65dvh;
         border-radius: 14px 14px 0 0;
-        transform: translateY(var(--sheet-y, 100%));
-        transition: transform .22s ease;
-        will-change: transform;
+        transform: translateY(100%);
+        transition: transform .18s ease;
       }
-      #audio-sheet.dragging {
-        transition: none;
+      #audio-sheet.open {
+        z-index: 520;
+        transform: translateY(0);
       }
-      #audio-sheet.open { z-index: 520; }
       #audio-sheet-bar {
         justify-content: flex-end;
         padding: 8px 12px 6px;
-        cursor: grab;
-        touch-action: none;
+        cursor: default;
+        touch-action: manipulation;
       }
       #audio-sheet-close {
         width: 40px;
@@ -840,10 +833,6 @@
       #audio-sheet-body {
         padding: 12px 14px calc(28px + env(safe-area-inset-bottom));
         min-height: 0;
-        overflow-y: hidden;
-        touch-action: none;
-      }
-      #audio-sheet.sheet-expanded #audio-sheet-body {
         overflow-y: auto;
         touch-action: pan-y;
       }
@@ -3927,14 +3916,8 @@ function showShareToast() {
 var bottomSheet = {
   sheet: null,
   body: null,
-  bar: null,
   close: null,
-  state: 'closed',
-  pointerId: null,
-  dragging: false,
-  startY: 0,
-  startTranslate: 0,
-  lastTranslate: 0
+  state: 'closed'
 };
 
 function clearMobilePointCard() {
@@ -3946,73 +3929,59 @@ function clearMobilePointCard() {
   }
 }
 
-function getSheetMetrics() {
-  var sheet = bottomSheet.sheet || document.getElementById('audio-sheet');
-  var viewportH = window.innerHeight || document.documentElement.clientHeight || 720;
-  var sheetH = sheet ? (sheet.offsetHeight || viewportH * 0.9) : viewportH * 0.9;
-  return {
-    expanded: 0,
-    mid: Math.max(0, sheetH - viewportH * 0.5),
-    collapsed: Math.max(0, sheetH - viewportH * 0.15),
-    closed: sheetH + 24
-  };
+function focusMobileSheetPlayer(container) {
+  if (!container) return;
+  var player = container.querySelector('.mobile-sheet-player');
+  if (!player) return;
+  window.requestAnimationFrame(function() {
+    player.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    var focusTarget = player.querySelector('audio, iframe, button') || player;
+    if (focusTarget && focusTarget.focus) {
+      try { focusTarget.focus({ preventScroll: true }); } catch (err) { focusTarget.focus(); }
+    }
+  });
 }
 
-function setSheetPosition(position, options) {
+function closeMobilePointDetails(options) {
   var sheet = bottomSheet.sheet || document.getElementById('audio-sheet');
-  if (!sheet) return;
-  var opts = options || {};
-  var metrics = getSheetMetrics();
-  var state = typeof position === 'string' ? position : (opts.state || bottomSheet.state || 'mid');
-  var translateY = typeof position === 'number' ? position : metrics[state];
-  translateY = Math.max(metrics.expanded, Math.min(metrics.closed, translateY));
-
-  sheet.style.setProperty('--sheet-y', translateY + 'px');
-  sheet.classList.toggle('dragging', !!opts.dragging);
-  sheet.classList.remove('sheet-collapsed', 'sheet-mid', 'sheet-expanded');
-
-  if (state === 'closed') {
+  var sheetBody = bottomSheet.body || document.getElementById('audio-sheet-body');
+  if (sheet) {
     sheet.classList.remove('open');
     sheet.setAttribute('aria-hidden', 'true');
-  } else {
-    sheet.classList.add('open', 'sheet-' + state);
-    sheet.setAttribute('aria-hidden', 'false');
   }
-
-  bottomSheet.state = state;
-  if (bottomSheet.body) {
-    bottomSheet.body.scrollTop = state === 'expanded' ? bottomSheet.body.scrollTop : 0;
+  if (sheetBody) {
+    sheetBody.innerHTML = '';
+    sheetBody.scrollTop = 0;
   }
-}
-
-function expandSheet() {
-  setSheetPosition('expanded');
-}
-
-function collapseSheet() {
-  setSheetPosition('collapsed');
+  bottomSheet.state = 'closed';
+  clearMobilePointCard();
+  if (!(options && options.keepActive)) activePointId = null;
 }
 
 function closeSheet() {
-  setSheetPosition('closed');
-  clearMobilePointCard();
-  activePointId = null;
+  closeMobilePointDetails();
 }
 
 window.closeCurrentPopup = function() {
   if (currentPopup) { currentPopup.remove(); currentPopup = null; }
-  closeSheet();
+  closeMobilePointDetails();
 };
 
 function openMobilePointDetails(p) {
+  bottomSheet.sheet = bottomSheet.sheet || document.getElementById('audio-sheet');
+  bottomSheet.body = bottomSheet.body || document.getElementById('audio-sheet-body');
   var sheetBody = bottomSheet.body || document.getElementById('audio-sheet-body');
-  if (!sheetBody) return;
+  if (!bottomSheet.sheet || !sheetBody) return;
   sheetBody.innerHTML = buildMobileSheetHTML(p);
   bindAudioAnalytics(sheetBody, p);
   bindMobileSheetControls(sheetBody);
-  setSheetPosition('mid');
+  bottomSheet.sheet.classList.add('open');
+  bottomSheet.sheet.setAttribute('aria-hidden', 'false');
+  bottomSheet.state = 'open';
   sheetBody.scrollTop = 0;
+  clearMobilePointCard();
   if (isMobileViewport()) setMobileSheetState('collapsed');
+  focusMobileSheetPlayer(sheetBody);
 }
 
 function renderMobilePointCard(p) {
@@ -4047,10 +4016,9 @@ function bindMobileSheetControls(container) {
   if (!container) return;
   container.querySelectorAll('[data-mobile-action="focus-player"], [data-mobile-action="play-inline"]').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      if (bottomSheet.state === 'collapsed') setSheetPosition('mid');
       var player = container.querySelector('.mobile-sheet-player');
       if (player && player.scrollIntoView) {
-        player.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        player.scrollIntoView({ block: 'start', behavior: 'smooth' });
       }
       if (btn.dataset.mobileAction === 'play-inline') {
         var audio = container.querySelector('.mobile-sheet-player audio');
@@ -4064,91 +4032,21 @@ function bindMobileSheetControls(container) {
   });
 }
 
-function isInteractiveSheetTarget(target) {
-  return !!(target && target.closest && target.closest('button, a, audio, iframe, input, textarea, select, .mobile-sheet-player'));
-}
-
-function getNearestSheetState(translateY, deltaY) {
-  var metrics = getSheetMetrics();
-  if (translateY > metrics.collapsed + 48 || deltaY > 180) return 'closed';
-  var targets = [
-    { state: 'expanded', y: metrics.expanded },
-    { state: 'mid', y: metrics.mid },
-    { state: 'collapsed', y: metrics.collapsed }
-  ];
-  return targets.reduce(function(best, item) {
-    return Math.abs(item.y - translateY) < Math.abs(best.y - translateY) ? item : best;
-  }, targets[0]).state;
-}
-
-function initBottomSheet() {
+function initMobileAudioSheet() {
   bottomSheet.sheet = document.getElementById('audio-sheet');
   bottomSheet.body = document.getElementById('audio-sheet-body');
-  bottomSheet.bar = document.getElementById('audio-sheet-bar');
   bottomSheet.close = document.getElementById('audio-sheet-close');
-  if (!bottomSheet.sheet || !bottomSheet.bar || !bottomSheet.body || !bottomSheet.close) return;
+  if (!bottomSheet.sheet || !bottomSheet.body || !bottomSheet.close) return;
 
-  setSheetPosition('closed');
-
-  bottomSheet.close.addEventListener('pointerdown', function(e) {
-    e.stopPropagation();
-  });
   bottomSheet.close.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    closeSheet();
-  });
-
-  function startDrag(e) {
-    if (!isMobileViewport() || bottomSheet.state === 'closed') return;
-    if (e.target && e.target.closest && e.target.closest('#audio-sheet-close')) return;
-    if (isInteractiveSheetTarget(e.target)) return;
-    if (bottomSheet.state === 'expanded' && !e.target.closest('#audio-sheet-bar')) return;
-
-    bottomSheet.dragging = true;
-    bottomSheet.pointerId = e.pointerId;
-    bottomSheet.startY = e.clientY;
-    bottomSheet.startTranslate = getSheetMetrics()[bottomSheet.state] || 0;
-    bottomSheet.lastTranslate = bottomSheet.startTranslate;
-    bottomSheet.sheet.classList.add('dragging');
-    if (bottomSheet.sheet.setPointerCapture) {
-      try { bottomSheet.sheet.setPointerCapture(e.pointerId); } catch (err) {}
-    }
-  }
-
-  function moveDrag(e) {
-    if (!bottomSheet.dragging || e.pointerId !== bottomSheet.pointerId) return;
-    e.preventDefault();
-    var metrics = getSheetMetrics();
-    var nextY = Math.max(metrics.expanded, Math.min(metrics.closed, bottomSheet.startTranslate + e.clientY - bottomSheet.startY));
-    bottomSheet.lastTranslate = nextY;
-    setSheetPosition(nextY, { dragging: true, state: bottomSheet.state });
-  }
-
-  function finishDrag(e) {
-    if (!bottomSheet.dragging || e.pointerId !== bottomSheet.pointerId) return;
-    var deltaY = e.clientY - bottomSheet.startY;
-    bottomSheet.dragging = false;
-    bottomSheet.sheet.classList.remove('dragging');
-    if (bottomSheet.sheet.releasePointerCapture) {
-      try { bottomSheet.sheet.releasePointerCapture(e.pointerId); } catch (err) {}
-    }
-    var nextState = getNearestSheetState(bottomSheet.lastTranslate, deltaY);
-    if (nextState === 'closed') {
-      closeSheet();
-    } else {
-      setSheetPosition(nextState);
-    }
-  }
-
-  bottomSheet.sheet.addEventListener('pointerdown', startDrag);
-  bottomSheet.sheet.addEventListener('pointermove', moveDrag);
-  bottomSheet.sheet.addEventListener('pointerup', finishDrag);
-  bottomSheet.sheet.addEventListener('pointercancel', finishDrag);
-  window.addEventListener('resize', function() {
-    setSheetPosition(bottomSheet.state);
+    closeMobilePointDetails();
   });
 }
+
+window.openMobilePointDetails = openMobilePointDetails;
+window.closeMobilePointDetails = closeMobilePointDetails;
 
 function flyToPoint(p) {
   activePointId = p.id;
@@ -4162,10 +4060,7 @@ function flyToPoint(p) {
   var isMobile = window.matchMedia('(max-width: 768px)').matches;
 
   if (isMobile) {
-    var sheet = document.getElementById('audio-sheet');
-    sheet.classList.remove('open');
-    sheet.setAttribute('aria-hidden', 'true');
-    renderMobilePointCard(p);
+    openMobilePointDetails(p);
   } else {
     /* Escritorio: popup flotante normal */
     currentPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: false, maxWidth: '340px', offset: 20 })
@@ -4380,7 +4275,7 @@ function buildMobileSheetHTML(p) {
         '&#9654; Escuchar aqui' +
       '</button>';
     player =
-      '<div class="mobile-sheet-player spotify-wrap">' +
+        '<div class="mobile-sheet-player spotify-wrap" tabindex="-1">' +
         '<iframe src="' + embedUrl + '" height="' + h + '" ' +
           'allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" ' +
           'loading="lazy"></iframe>' +
@@ -4389,11 +4284,11 @@ function buildMobileSheetHTML(p) {
     if (p.audio_kind === 'file') {
       listenButton =
         '<button class="mobile-listen-primary" type="button" data-mobile-action="play-inline">' +
-          '&#9654; Reproducir en esta ficha' +
+          '&#9654; Escuchar' +
         '</button>';
       player =
-        '<div class="mobile-sheet-player audio-wrap">' +
-          '<audio controls preload="metadata" src="' + p.audio + '"' + protectedAudioAttrs(p) + '></audio>' +
+        '<div class="mobile-sheet-player audio-wrap" tabindex="-1">' +
+          '<audio controls preload="metadata" src="' + p.audio + '"></audio>' +
           protectedAudioNoteHTML(p) +
         '</div>';
     } else {
@@ -4402,7 +4297,7 @@ function buildMobileSheetHTML(p) {
           '&#9654; Escuchar aqui' +
         '</button>';
       player =
-        '<div class="mobile-sheet-player audio-wrap">' +
+        '<div class="mobile-sheet-player audio-wrap" tabindex="-1">' +
           '<iframe src="' + p.audio + '" width="100%" height="180" frameborder="0" scrolling="no" allowfullscreen ' +
             'title="Audio etnografia sonora" style="border-radius:8px;display:block;"></iframe>' +
         '</div>';
@@ -4419,8 +4314,8 @@ function buildMobileSheetHTML(p) {
     '</div>' +
     '<h2 class="mobile-sheet-title">' + p.title + '</h2>' +
     '<div class="mobile-sheet-location">' + p.location + '</div>' +
-    listenButton +
     player +
+    listenButton +
     '<p class="mobile-sheet-desc">' + p.description + '</p>' +
     '<div class="mobile-sheet-meta">' +
       '<span>Fecha: ' + p.date + '</span>' +
@@ -4697,7 +4592,7 @@ document.getElementById('modal-save').addEventListener('click', function() {
     document.getElementById('info-panel').classList.add('hidden');
   });
 
-  initBottomSheet();
+  initMobileAudioSheet();
 
 })();
 </script>
