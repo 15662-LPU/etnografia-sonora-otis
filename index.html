@@ -408,8 +408,14 @@
       max-height: 72vh;
       flex-direction: column;
       overscroll-behavior: contain;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(100%);
     }
-    #audio-sheet.open { display: flex; }
+    #audio-sheet.open {
+      visibility: visible;
+      pointer-events: auto;
+    }
     #audio-sheet-bar {
       display: flex;
       align-items: center;
@@ -806,22 +812,12 @@
         color: #fff;
       }
       #audio-sheet {
-        height: 92dvh;
-        max-height: 92dvh;
+        height: 90dvh;
+        max-height: 90dvh;
         border-radius: 14px 14px 0 0;
-        transform: translateY(100%);
+        transform: translateY(var(--sheet-y, 100%));
         transition: transform .22s ease;
         will-change: transform;
-      }
-      #audio-sheet.open.sheet-collapsed {
-        transform: translateY(calc(100% - 34dvh));
-      }
-      #audio-sheet.open.sheet-mid {
-        transform: translateY(calc(100% - 62dvh));
-      }
-      #audio-sheet.open.sheet-expanded,
-      #audio-sheet.open.expanded {
-        transform: translateY(0);
       }
       #audio-sheet.dragging {
         transition: none;
@@ -844,6 +840,11 @@
       #audio-sheet-body {
         padding: 12px 14px calc(28px + env(safe-area-inset-bottom));
         min-height: 0;
+        overflow-y: hidden;
+        touch-action: none;
+      }
+      #audio-sheet.sheet-expanded #audio-sheet-body {
+        overflow-y: auto;
         touch-action: pan-y;
       }
       .mobile-sheet-kicker {
@@ -3923,16 +3924,17 @@ function showShareToast() {
 /* =================================================================
    POPUP
 ================================================================= */
-window.closeCurrentPopup = function() {
-  if (currentPopup) { currentPopup.remove(); currentPopup = null; }
-  var sheet = document.getElementById('audio-sheet');
-  sheet.classList.remove('open');
-  sheet.classList.remove('expanded');
-  sheet.classList.remove('sheet-collapsed', 'sheet-mid', 'sheet-expanded', 'dragging');
-  sheet.style.transform = '';
-  sheet.setAttribute('aria-hidden', 'true');
-  clearMobilePointCard();
-  activePointId = null;
+var bottomSheet = {
+  sheet: null,
+  body: null,
+  bar: null,
+  close: null,
+  state: 'closed',
+  pointerId: null,
+  dragging: false,
+  startY: 0,
+  startTranslate: 0,
+  lastTranslate: 0
 };
 
 function clearMobilePointCard() {
@@ -3944,13 +3946,71 @@ function clearMobilePointCard() {
   }
 }
 
+function getSheetMetrics() {
+  var sheet = bottomSheet.sheet || document.getElementById('audio-sheet');
+  var viewportH = window.innerHeight || document.documentElement.clientHeight || 720;
+  var sheetH = sheet ? (sheet.offsetHeight || viewportH * 0.9) : viewportH * 0.9;
+  return {
+    expanded: 0,
+    mid: Math.max(0, sheetH - viewportH * 0.5),
+    collapsed: Math.max(0, sheetH - viewportH * 0.15),
+    closed: sheetH + 24
+  };
+}
+
+function setSheetPosition(position, options) {
+  var sheet = bottomSheet.sheet || document.getElementById('audio-sheet');
+  if (!sheet) return;
+  var opts = options || {};
+  var metrics = getSheetMetrics();
+  var state = typeof position === 'string' ? position : (opts.state || bottomSheet.state || 'mid');
+  var translateY = typeof position === 'number' ? position : metrics[state];
+  translateY = Math.max(metrics.expanded, Math.min(metrics.closed, translateY));
+
+  sheet.style.setProperty('--sheet-y', translateY + 'px');
+  sheet.classList.toggle('dragging', !!opts.dragging);
+  sheet.classList.remove('sheet-collapsed', 'sheet-mid', 'sheet-expanded');
+
+  if (state === 'closed') {
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden', 'true');
+  } else {
+    sheet.classList.add('open', 'sheet-' + state);
+    sheet.setAttribute('aria-hidden', 'false');
+  }
+
+  bottomSheet.state = state;
+  if (bottomSheet.body) {
+    bottomSheet.body.scrollTop = state === 'expanded' ? bottomSheet.body.scrollTop : 0;
+  }
+}
+
+function expandSheet() {
+  setSheetPosition('expanded');
+}
+
+function collapseSheet() {
+  setSheetPosition('collapsed');
+}
+
+function closeSheet() {
+  setSheetPosition('closed');
+  clearMobilePointCard();
+  activePointId = null;
+}
+
+window.closeCurrentPopup = function() {
+  if (currentPopup) { currentPopup.remove(); currentPopup = null; }
+  closeSheet();
+};
+
 function openMobilePointDetails(p) {
-  var sheet = document.getElementById('audio-sheet');
-  var sheetBody = document.getElementById('audio-sheet-body');
+  var sheetBody = bottomSheet.body || document.getElementById('audio-sheet-body');
+  if (!sheetBody) return;
   sheetBody.innerHTML = buildMobileSheetHTML(p);
   bindAudioAnalytics(sheetBody, p);
   bindMobileSheetControls(sheetBody);
-  setAudioSheetPanelState('mid');
+  setSheetPosition('mid');
   sheetBody.scrollTop = 0;
   if (isMobileViewport()) setMobileSheetState('collapsed');
 }
@@ -3987,6 +4047,7 @@ function bindMobileSheetControls(container) {
   if (!container) return;
   container.querySelectorAll('[data-mobile-action="focus-player"], [data-mobile-action="play-inline"]').forEach(function(btn) {
     btn.addEventListener('click', function() {
+      if (bottomSheet.state === 'collapsed') setSheetPosition('mid');
       var player = container.querySelector('.mobile-sheet-player');
       if (player && player.scrollIntoView) {
         player.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -4003,127 +4064,90 @@ function bindMobileSheetControls(container) {
   });
 }
 
-function setAudioSheetPanelState(state) {
-  var sheet = document.getElementById('audio-sheet');
-  if (!sheet) return;
-  var nextState = state || 'mid';
-  sheet.classList.remove('sheet-collapsed', 'sheet-mid', 'sheet-expanded', 'expanded', 'dragging');
-  sheet.style.transform = '';
-  if (nextState === 'closed') {
-    sheet.classList.remove('open');
-    sheet.setAttribute('aria-hidden', 'true');
-    return;
-  }
-  sheet.classList.add('open', 'sheet-' + nextState);
-  if (nextState === 'expanded') sheet.classList.add('expanded');
-  sheet.setAttribute('aria-hidden', 'false');
+function isInteractiveSheetTarget(target) {
+  return !!(target && target.closest && target.closest('button, a, audio, iframe, input, textarea, select, .mobile-sheet-player'));
 }
 
-function setAudioSheetExpanded(expanded) {
-  setAudioSheetPanelState(expanded ? 'expanded' : 'mid');
-}
-
-function getAudioSheetState() {
-  var sheet = document.getElementById('audio-sheet');
-  if (!sheet) return 'mid';
-  if (sheet.classList.contains('sheet-expanded') || sheet.classList.contains('expanded')) return 'expanded';
-  if (sheet.classList.contains('sheet-collapsed')) return 'collapsed';
-  return 'mid';
-}
-
-function getAudioSheetTranslateForState(sheet, state) {
-  var viewportH = window.innerHeight || document.documentElement.clientHeight || 720;
-  var sheetH = sheet.offsetHeight || viewportH * 0.92;
-  var visibleRatio = state === 'expanded' ? 0.92 : (state === 'collapsed' ? 0.34 : 0.62);
-  var visiblePx = Math.min(sheetH, viewportH * visibleRatio);
-  return Math.max(0, sheetH - visiblePx);
-}
-
-function getAudioSheetCurrentTranslate(sheet) {
-  var style = window.getComputedStyle(sheet);
-  var transform = style.transform || style.webkitTransform;
-  if (!transform || transform === 'none') return getAudioSheetTranslateForState(sheet, getAudioSheetState());
-  var match = transform.match(/matrix\(([^)]+)\)/);
-  if (match) {
-    var parts = match[1].split(',');
-    return parseFloat(parts[5]) || 0;
-  }
-  var match3d = transform.match(/matrix3d\(([^)]+)\)/);
-  if (match3d) {
-    var parts3d = match3d[1].split(',');
-    return parseFloat(parts3d[13]) || 0;
-  }
-  return getAudioSheetTranslateForState(sheet, getAudioSheetState());
-}
-
-function chooseAudioSheetStateFromTranslate(sheet, translateY) {
-  var collapsedY = getAudioSheetTranslateForState(sheet, 'collapsed');
-  if (translateY > collapsedY + 56) return 'closed';
+function getNearestSheetState(translateY, deltaY) {
+  var metrics = getSheetMetrics();
+  if (translateY > metrics.collapsed + 48 || deltaY > 180) return 'closed';
   var targets = [
-    { state: 'expanded', y: getAudioSheetTranslateForState(sheet, 'expanded') },
-    { state: 'mid', y: getAudioSheetTranslateForState(sheet, 'mid') },
-    { state: 'collapsed', y: collapsedY }
+    { state: 'expanded', y: metrics.expanded },
+    { state: 'mid', y: metrics.mid },
+    { state: 'collapsed', y: metrics.collapsed }
   ];
   return targets.reduce(function(best, item) {
     return Math.abs(item.y - translateY) < Math.abs(best.y - translateY) ? item : best;
   }, targets[0]).state;
 }
 
-function initMobileAudioSheetGestures() {
-  var sheet = document.getElementById('audio-sheet');
-  var bar = document.getElementById('audio-sheet-bar');
-  if (!sheet || !bar) return;
-  var closeBtn = document.getElementById('audio-sheet-close');
-  var dragging = false;
-  var startY = 0;
-  var startTranslate = 0;
-  var lastTranslate = 0;
+function initBottomSheet() {
+  bottomSheet.sheet = document.getElementById('audio-sheet');
+  bottomSheet.body = document.getElementById('audio-sheet-body');
+  bottomSheet.bar = document.getElementById('audio-sheet-bar');
+  bottomSheet.close = document.getElementById('audio-sheet-close');
+  if (!bottomSheet.sheet || !bottomSheet.bar || !bottomSheet.body || !bottomSheet.close) return;
 
-  if (closeBtn) {
-    closeBtn.addEventListener('pointerdown', function(e) {
-      e.stopPropagation();
-    });
+  setSheetPosition('closed');
+
+  bottomSheet.close.addEventListener('pointerdown', function(e) {
+    e.stopPropagation();
+  });
+  bottomSheet.close.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    closeSheet();
+  });
+
+  function startDrag(e) {
+    if (!isMobileViewport() || bottomSheet.state === 'closed') return;
+    if (e.target && e.target.closest && e.target.closest('#audio-sheet-close')) return;
+    if (isInteractiveSheetTarget(e.target)) return;
+    if (bottomSheet.state === 'expanded' && !e.target.closest('#audio-sheet-bar')) return;
+
+    bottomSheet.dragging = true;
+    bottomSheet.pointerId = e.pointerId;
+    bottomSheet.startY = e.clientY;
+    bottomSheet.startTranslate = getSheetMetrics()[bottomSheet.state] || 0;
+    bottomSheet.lastTranslate = bottomSheet.startTranslate;
+    bottomSheet.sheet.classList.add('dragging');
+    if (bottomSheet.sheet.setPointerCapture) {
+      try { bottomSheet.sheet.setPointerCapture(e.pointerId); } catch (err) {}
+    }
   }
 
-  bar.addEventListener('pointerdown', function(e) {
-    if (!isMobileViewport() || !sheet.classList.contains('open')) return;
-    if (e.target && e.target.closest && e.target.closest('#audio-sheet-close')) return;
-    dragging = true;
-    startY = e.clientY;
-    startTranslate = getAudioSheetCurrentTranslate(sheet);
-    lastTranslate = startTranslate;
-    sheet.classList.add('dragging');
-    if (bar.setPointerCapture) {
-      try { bar.setPointerCapture(e.pointerId); } catch (err) {}
-    }
-  });
-
-  bar.addEventListener('pointermove', function(e) {
-    if (!dragging) return;
+  function moveDrag(e) {
+    if (!bottomSheet.dragging || e.pointerId !== bottomSheet.pointerId) return;
     e.preventDefault();
-    var maxTranslate = sheet.offsetHeight || window.innerHeight || 720;
-    lastTranslate = Math.max(0, Math.min(maxTranslate, startTranslate + (e.clientY - startY)));
-    sheet.style.transform = 'translateY(' + lastTranslate + 'px)';
-  });
+    var metrics = getSheetMetrics();
+    var nextY = Math.max(metrics.expanded, Math.min(metrics.closed, bottomSheet.startTranslate + e.clientY - bottomSheet.startY));
+    bottomSheet.lastTranslate = nextY;
+    setSheetPosition(nextY, { dragging: true, state: bottomSheet.state });
+  }
 
   function finishDrag(e) {
-    if (!dragging) return;
-    dragging = false;
-    sheet.classList.remove('dragging');
-    sheet.style.transform = '';
-    if (bar.releasePointerCapture && e && e.pointerId !== undefined) {
-      try { bar.releasePointerCapture(e.pointerId); } catch (err) {}
+    if (!bottomSheet.dragging || e.pointerId !== bottomSheet.pointerId) return;
+    var deltaY = e.clientY - bottomSheet.startY;
+    bottomSheet.dragging = false;
+    bottomSheet.sheet.classList.remove('dragging');
+    if (bottomSheet.sheet.releasePointerCapture) {
+      try { bottomSheet.sheet.releasePointerCapture(e.pointerId); } catch (err) {}
     }
-    var nextState = chooseAudioSheetStateFromTranslate(sheet, lastTranslate);
+    var nextState = getNearestSheetState(bottomSheet.lastTranslate, deltaY);
     if (nextState === 'closed') {
-      closeCurrentPopup();
+      closeSheet();
     } else {
-      setAudioSheetPanelState(nextState);
+      setSheetPosition(nextState);
     }
   }
 
-  bar.addEventListener('pointerup', finishDrag);
-  bar.addEventListener('pointercancel', finishDrag);
+  bottomSheet.sheet.addEventListener('pointerdown', startDrag);
+  bottomSheet.sheet.addEventListener('pointermove', moveDrag);
+  bottomSheet.sheet.addEventListener('pointerup', finishDrag);
+  bottomSheet.sheet.addEventListener('pointercancel', finishDrag);
+  window.addEventListener('resize', function() {
+    setSheetPosition(bottomSheet.state);
+  });
 }
 
 function flyToPoint(p) {
@@ -4673,13 +4697,7 @@ document.getElementById('modal-save').addEventListener('click', function() {
     document.getElementById('info-panel').classList.add('hidden');
   });
 
-  /* Audio sheet: botón cerrar */
-  document.getElementById('audio-sheet-close').addEventListener('click', function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    closeCurrentPopup();
-  });
-  initMobileAudioSheetGestures();
+  initBottomSheet();
 
 })();
 </script>
