@@ -806,13 +806,20 @@
         color: #fff;
       }
       #audio-sheet {
+        height: 82dvh;
         max-height: 86dvh;
         border-radius: 14px 14px 0 0;
+      }
+      #audio-sheet.expanded {
+        height: 92dvh;
+        max-height: 92dvh;
       }
       #audio-sheet.open { z-index: 520; }
       #audio-sheet-bar {
         justify-content: flex-end;
         padding: 8px 12px 6px;
+        cursor: grab;
+        touch-action: none;
       }
       #audio-sheet-close {
         width: 40px;
@@ -822,7 +829,11 @@
         font-size: 1.2rem;
         font-weight: 800;
       }
-      #audio-sheet-body { padding: 12px 14px 24px; }
+      #audio-sheet-body {
+        padding: 12px 14px calc(28px + env(safe-area-inset-bottom));
+        min-height: 0;
+        touch-action: pan-y;
+      }
       .mobile-sheet-kicker {
         display: flex;
         gap: 6px;
@@ -864,6 +875,12 @@
         color: #8b949e;
         border: 1px dashed #30363d;
       }
+      button.mobile-listen-primary {
+        width: 100%;
+        border: 0;
+        font-family: inherit;
+        cursor: pointer;
+      }
       .mobile-sheet-desc {
         color: #c9d1d9;
         font-size: .84rem;
@@ -881,7 +898,17 @@
         font-size: .74rem;
         margin-bottom: 12px;
       }
-      .mobile-sheet-player { margin-top: 10px; }
+      .mobile-sheet-player {
+        margin: 10px 0 12px;
+      }
+      .mobile-sheet-player audio {
+        width: 100%;
+        display: block;
+      }
+      .mobile-sheet-player iframe {
+        width: 100%;
+        display: block;
+      }
       .mobile-sheet-tags {
         display: flex;
         flex-wrap: wrap;
@@ -3888,6 +3915,7 @@ window.closeCurrentPopup = function() {
   if (currentPopup) { currentPopup.remove(); currentPopup = null; }
   var sheet = document.getElementById('audio-sheet');
   sheet.classList.remove('open');
+  sheet.classList.remove('expanded');
   sheet.setAttribute('aria-hidden', 'true');
   clearMobilePointCard();
   activePointId = null;
@@ -3907,9 +3935,12 @@ function openMobilePointDetails(p) {
   var sheetBody = document.getElementById('audio-sheet-body');
   sheetBody.innerHTML = buildMobileSheetHTML(p);
   bindAudioAnalytics(sheetBody, p);
+  bindMobileSheetControls(sheetBody);
   sheet.classList.add('open');
+  sheet.classList.add('expanded');
   sheet.setAttribute('aria-hidden', 'false');
   sheetBody.scrollTop = 0;
+  if (isMobileViewport()) setMobileSheetState('collapsed');
 }
 
 function renderMobilePointCard(p) {
@@ -3918,10 +3949,7 @@ function renderMobilePointCard(p) {
   var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
   var srcType = getSourceType(p);
   var origin = getOriginInfo(p);
-  var listenHref = p.spotify ? p.spotify.split('?')[0] : (p.audio && p.audio_kind !== 'file' ? p.audio : '');
-  var listenControl = listenHref ?
-    '<a class="listen" data-analytics-audio="1" href="' + listenHref + '" target="_blank" rel="noopener noreferrer">Escuchar</a>' :
-    '<button class="listen" type="button" data-mobile-action="details">Escuchar</button>';
+  var listenControl = '<button class="listen" type="button" data-mobile-action="details">Escuchar</button>';
 
   card.innerHTML =
     '<div class="origin-pill ' + origin.dotClass + '"><span class="origin-dot ' + origin.dotClass + '"></span>' + origin.label + '</div>' +
@@ -3941,6 +3969,57 @@ function renderMobilePointCard(p) {
   });
   bindAudioAnalytics(card, p);
   setMobileSheetState('collapsed', { pointCard: true });
+}
+
+function bindMobileSheetControls(container) {
+  if (!container) return;
+  container.querySelectorAll('[data-mobile-action="focus-player"], [data-mobile-action="play-inline"]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var player = container.querySelector('.mobile-sheet-player');
+      if (player && player.scrollIntoView) {
+        player.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+      if (btn.dataset.mobileAction === 'play-inline') {
+        var audio = container.querySelector('.mobile-sheet-player audio');
+        if (audio) {
+          audio.play().catch(function() {
+            if (window.console) console.info('El navegador requiere tocar el control nativo para iniciar el audio.');
+          });
+        }
+      }
+    });
+  });
+}
+
+function setAudioSheetExpanded(expanded) {
+  var sheet = document.getElementById('audio-sheet');
+  if (!sheet) return;
+  sheet.classList.toggle('expanded', !!expanded);
+}
+
+function initMobileAudioSheetGestures() {
+  var sheet = document.getElementById('audio-sheet');
+  var bar = document.getElementById('audio-sheet-bar');
+  if (!sheet || !bar) return;
+  var startY = null;
+
+  bar.addEventListener('touchstart', function(e) {
+    if (!e.touches || !e.touches.length) return;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  bar.addEventListener('touchend', function(e) {
+    if (startY === null || !e.changedTouches || !e.changedTouches.length) return;
+    var deltaY = e.changedTouches[0].clientY - startY;
+    startY = null;
+    if (deltaY < -24) {
+      setAudioSheetExpanded(true);
+    } else if (deltaY > 44) {
+      closeCurrentPopup();
+    } else {
+      setAudioSheetExpanded(!sheet.classList.contains('expanded'));
+    }
+  }, { passive: true });
 }
 
 function flyToPoint(p) {
@@ -4165,14 +4244,13 @@ function buildMobileSheetHTML(p) {
   var player = '';
 
   if (p.spotify) {
-    var openUrl = p.spotify.split('?')[0];
     var embedUrl = convertToSpotifyEmbed(p.spotify);
     var isLong = p.spotify.indexOf('/playlist/') !== -1 || p.spotify.indexOf('/show/') !== -1;
     var h = isLong ? 232 : 152;
     listenButton =
-      '<a class="mobile-listen-primary" data-analytics-audio="1" href="' + openUrl + '" target="_blank" rel="noopener noreferrer">' +
-        '&#9654; Escuchar en Spotify' +
-      '</a>';
+      '<button class="mobile-listen-primary" type="button" data-mobile-action="focus-player">' +
+        '&#9654; Escuchar aqui' +
+      '</button>';
     player =
       '<div class="mobile-sheet-player spotify-wrap">' +
         '<iframe src="' + embedUrl + '" height="' + h + '" ' +
@@ -4180,18 +4258,21 @@ function buildMobileSheetHTML(p) {
           'loading="lazy"></iframe>' +
       '</div>';
   } else if (p.audio) {
-    listenButton = isCitizenSubmission(p)
-      ? '<div class="mobile-listen-primary disabled">Escucha disponible en esta ficha</div>'
-      : '<a class="mobile-listen-primary" data-analytics-audio="1" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">' +
-          '&#9654; Abrir audio' +
-        '</a>';
     if (p.audio_kind === 'file') {
+      listenButton =
+        '<button class="mobile-listen-primary" type="button" data-mobile-action="play-inline">' +
+          '&#9654; Reproducir en esta ficha' +
+        '</button>';
       player =
         '<div class="mobile-sheet-player audio-wrap">' +
           '<audio controls preload="metadata" src="' + p.audio + '"' + protectedAudioAttrs(p) + '></audio>' +
           protectedAudioNoteHTML(p) +
         '</div>';
     } else {
+      listenButton =
+        '<button class="mobile-listen-primary" type="button" data-mobile-action="focus-player">' +
+          '&#9654; Escuchar aqui' +
+        '</button>';
       player =
         '<div class="mobile-sheet-player audio-wrap">' +
           '<iframe src="' + p.audio + '" width="100%" height="180" frameborder="0" scrolling="no" allowfullscreen ' +
@@ -4211,6 +4292,7 @@ function buildMobileSheetHTML(p) {
     '<h2 class="mobile-sheet-title">' + p.title + '</h2>' +
     '<div class="mobile-sheet-location">' + p.location + '</div>' +
     listenButton +
+    player +
     '<p class="mobile-sheet-desc">' + p.description + '</p>' +
     '<div class="mobile-sheet-meta">' +
       '<span>Fecha: ' + p.date + '</span>' +
@@ -4219,7 +4301,6 @@ function buildMobileSheetHTML(p) {
       '<span>Origen: ' + origin.label + '</span>' +
       '<span>Tipo: ' + srcType.label + '</span>' +
     '</div>' +
-    player +
     (tags ? '<div class="mobile-sheet-tags">' + tags + '</div>' : '') +
     '<div style="margin-top:12px;display:flex;justify-content:flex-end">' +
       '<button onclick="sharePoint(' + JSON.stringify(p.id) + ')" style="background:none;border:none;color:#8b949e;font-size:.76rem;cursor:pointer;padding:0">Compartir punto</button>' +
@@ -4492,6 +4573,7 @@ document.getElementById('modal-save').addEventListener('click', function() {
   document.getElementById('audio-sheet-close').addEventListener('click', function () {
     closeCurrentPopup();
   });
+  initMobileAudioSheetGestures();
 
 })();
 </script>
