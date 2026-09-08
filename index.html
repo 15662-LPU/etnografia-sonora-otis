@@ -6,6 +6,11 @@
   <title>Punto Cero — Etnografía Sonora del Huracán Otis · Acapulco</title>
   <meta name="description" content="Mapa sonoro interactivo del Huracán Otis en Acapulco. Escucha y explora 61 puntos de grabación que documentan la destrucción, el silencio y la recuperación (2023–2025)." />
   <meta name="author" content="15662-LPU" />
+  <script>
+    if (location.protocol === 'http:' && /(^|\.)puntoceroacapulco\.online$/i.test(location.hostname)) {
+      location.replace('https://' + location.host + location.pathname + location.search + location.hash);
+    }
+  </script>
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
