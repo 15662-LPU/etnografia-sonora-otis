@@ -2073,6 +2073,7 @@ var SOUND_POINTS = [
     coords: [-99.76, 16.79],
     spotify: null,
     audio: 'assets/audio/puntocero-otis-mezcla.mp3',
+    audio_mobile: 'assets/audio/puntocero-otis-mezcla-mobile.mp3',
     audio_kind: 'file',
     importance: 5,
   },
@@ -3015,6 +3016,10 @@ function protectedAudioAttrs(p) {
 function protectedAudioNoteHTML(p) {
   if (!isCitizenSubmission(p)) return '';
   return '<div class="protected-audio-note">Audio protegido para escucha dentro del archivo. No se ofrece descarga directa.</div>';
+}
+
+function getAudioSource(p) {
+  return isMobileViewport() && p.audio_mobile ? p.audio_mobile : p.audio;
 }
 
 function mobileSourceLabel(p) {
@@ -4063,6 +4068,8 @@ function bindMobileSheetControls(container) {
       if (btn.dataset.mobileAction === 'play-inline') {
         var audio = container.querySelector('.mobile-sheet-player audio');
         if (audio) {
+          audio.preload = 'auto';
+          audio.load();
           audio.play().catch(function() {
             if (window.console) console.info('El navegador requiere tocar el control nativo para iniciar el audio.');
           });
@@ -4225,12 +4232,13 @@ function buildPopupHTML(p) {
       '</a>';
   } else if (p.audio) {
     if (p.audio_kind === 'file') {
+      var audioSrc = getAudioSource(p);
       var directAudioLink = isCitizenSubmission(p)
         ? ''
-        : '<a class="spotify-link" data-analytics-audio="1" href="' + p.audio + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>';
+        : '<a class="spotify-link" data-analytics-audio="1" href="' + audioSrc + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>';
       audioBlock =
         '<div class="audio-wrap">' +
-          '<audio controls preload="metadata" src="' + p.audio + '"' + protectedAudioAttrs(p) + '></audio>' +
+          '<audio controls preload="metadata" src="' + audioSrc + '"' + protectedAudioAttrs(p) + '></audio>' +
           directAudioLink +
           protectedAudioNoteHTML(p) +
         '</div>';
@@ -4323,13 +4331,15 @@ function buildMobileSheetHTML(p) {
       '</div>';
   } else if (p.audio) {
     if (p.audio_kind === 'file') {
+      var mobileAudioSrc = getAudioSource(p);
       listenButton =
         '<button class="mobile-listen-primary" type="button" data-mobile-action="play-inline">' +
           '&#9654; Escuchar' +
         '</button>';
       player =
         '<div class="mobile-sheet-player audio-wrap" tabindex="-1">' +
-          '<audio controls preload="metadata" src="' + p.audio + '"></audio>' +
+          '<audio controls preload="none" src="' + mobileAudioSrc + '"></audio>' +
+          '<a class="audio-link" data-analytics-audio="1" href="' + mobileAudioSrc + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>' +
           protectedAudioNoteHTML(p) +
         '</div>';
     } else {
