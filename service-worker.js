@@ -1,9 +1,7 @@
-const CACHE_NAME = 'punto-cero-shell-v1';
+const CACHE_NAME = 'punto-cero-shell-v2';
 const SHELL_ASSETS = [
   './',
   './index.html',
-  './captura.html',
-  './metodologia.html',
   './portada-fondo-mobile.jpg',
   './portada-punto-cero-mobile.jpg'
 ];

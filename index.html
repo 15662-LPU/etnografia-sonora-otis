@@ -32,8 +32,10 @@
   <link rel="preconnect" href="https://unpkg.com" crossorigin />
   <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin />
   <link rel="dns-prefetch" href="//basemaps.cartocdn.com" />
-  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <link rel="preload" href="portada-fondo-mobile.jpg" as="image" media="(max-width: 768px)" />
+  <link rel="preload" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" /></noscript>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" defer></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -962,12 +964,12 @@
     }
     #cover-bg {
       position: absolute; inset: 0;
-      background: url('portada de fondo.png') center/cover no-repeat;
+      background: url('portada-fondo-mobile.jpg') center/cover no-repeat;
       transform: scale(1.06);
       transition: transform 10s ease;
     }
-    @media (max-width: 768px) {
-      #cover-bg { background-image: url('portada-fondo-mobile.jpg'); }
+    @media (min-width: 769px) {
+      #cover-bg { background-image: url('portada de fondo.png'); }
     }
     #cover-splash.visible #cover-bg { transform: scale(1); }
     #cover-overlay {
@@ -1638,6 +1640,7 @@
 </nav>
 
 <script>
+document.addEventListener('DOMContentLoaded', function () {
 /* TOKEN */
 /* MapLibre GL JS — sin token, tiles CARTO gratuitas */
 var STYLES = {
@@ -3503,6 +3506,7 @@ function navigateRoute(direction) {
   if (routeIndex >= NARRATIVE_ROUTE.length) routeIndex = NARRATIVE_ROUTE.length - 1;
   navigateToRoutePoint(routeIndex);
 }
+window.navigateRoute = navigateRoute;
 
 /* =================================================================
    LAYERS — clustering nativo Mapbox GL JS
@@ -3940,6 +3944,7 @@ function sharePoint(id) {
     showShareToast();
   }
 }
+window.sharePoint = sharePoint;
 
 function showShareToast() {
   var t = document.getElementById('share-toast');
@@ -4238,7 +4243,7 @@ function buildPopupHTML(p) {
         : '<a class="spotify-link" data-analytics-audio="1" href="' + audioSrc + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>';
       audioBlock =
         '<div class="audio-wrap">' +
-          '<audio controls preload="metadata" src="' + audioSrc + '"' + protectedAudioAttrs(p) + '></audio>' +
+          '<audio controls preload="none" src="' + audioSrc + '"' + protectedAudioAttrs(p) + '></audio>' +
           directAudioLink +
           protectedAudioNoteHTML(p) +
         '</div>';
@@ -4709,6 +4714,7 @@ document.getElementById('modal-save').addEventListener('click', function() {
   }
 
 })();
+});
 </script>
 
 </body>
