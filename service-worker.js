@@ -1,10 +1,18 @@
 const CACHE_PREFIX = 'punto-cero-';
-const CACHE_NAME = 'punto-cero-shell-v3';
+const CACHE_NAME = 'punto-cero-shell-v4';
 const SHELL_ASSETS = [
   './',
-  './index.html',
-  './portada-fondo-mobile.jpg'
+  './index.html'
 ];
+
+function cacheResponse(request, response) {
+  if (!response || !response.ok) return response;
+  const copy = response.clone();
+  caches.open(CACHE_NAME).then(function(cache) {
+    cache.put(request, copy).catch(function() {});
+  });
+  return response;
+}
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
@@ -41,14 +49,18 @@ self.addEventListener('fetch', function(event) {
   if (isAudio) return;
 
   if (isHtml) {
+    const network = fetch(request)
+      .then(function(response) { return cacheResponse(request, response); });
+
+    event.waitUntil(network.catch(function() {}));
     event.respondWith(
-      fetch(request)
-        .then(function(response) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) { cache.put(request, copy); });
-          return response;
+      caches.match(request, { ignoreSearch: true })
+        .then(function(cached) {
+          if (cached) return cached;
+          return network.catch(function() {
+            return caches.match('./index.html');
+          });
         })
-        .catch(function() { return caches.match(request).then(function(cached) { return cached || caches.match('./index.html'); }); })
     );
     return;
   }
@@ -56,11 +68,7 @@ self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(request).then(function(cached) {
       return cached || fetch(request).then(function(response) {
-        if (response && response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) { cache.put(request, copy); });
-        }
-        return response;
+        return cacheResponse(request, response);
       });
     })
   );

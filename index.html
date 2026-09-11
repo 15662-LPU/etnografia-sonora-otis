@@ -32,7 +32,6 @@
   <link rel="preconnect" href="https://unpkg.com" crossorigin />
   <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin />
   <link rel="dns-prefetch" href="//basemaps.cartocdn.com" />
-  <link rel="preload" href="portada-fondo-mobile.jpg" as="image" media="(max-width: 768px)" />
   <noscript><link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" /></noscript>
 
   <style>
@@ -224,6 +223,14 @@
     .origin-pill.citizen { border-color: #f0883e88; background: rgba(240, 136, 62, .16); color: #ffb77c; }
     .origin-pill.archive { border-color: #58a6ff66; background: rgba(88, 166, 255, .12); color: #9dccff; }
     .protected-audio-note { margin-top: 8px; color: #ffb77c; font-size: .72rem; line-height: 1.4; }
+    .protected-audio-player { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: center; }
+    .protected-audio-button { border: 1px solid #f0883e88; background: rgba(240, 136, 62, .16); color: #fff2e6; border-radius: 999px; padding: 8px 14px; font-size: .78rem; font-weight: 800; cursor: pointer; }
+    .protected-audio-button:hover { background: rgba(240, 136, 62, .26); }
+    .protected-audio-button:disabled { cursor: wait; opacity: .76; }
+    .protected-audio-progress { height: 8px; border-radius: 999px; overflow: hidden; background: #21262d; border: 1px solid #30363d; }
+    .protected-audio-progress span { display: block; width: 0%; height: 100%; background: #f0883e; transition: width .12s linear; }
+    .protected-audio-status { grid-column: 1 / -1; color: #8b949e; font-size: .72rem; }
+    .protected-audio-player audio { display: none; }
 
     /* Bienvenida al mapa */
     #map-help-button {
@@ -962,12 +969,16 @@
     }
     #cover-bg {
       position: absolute; inset: 0;
-      background: url('portada-fondo-mobile.jpg') center/cover no-repeat;
+      background:
+        radial-gradient(circle at 28% 24%, rgba(88,166,255,0.18), transparent 34%),
+        linear-gradient(135deg, #06080d 0%, #0d1117 58%, #111827 100%);
       transform: scale(1.06);
       transition: transform 10s ease;
     }
-    @media (min-width: 769px) {
-      #cover-bg { background-image: url('portada de fondo.png'); }
+    #cover-bg.image-ready {
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
     }
     #cover-splash.visible #cover-bg { transform: scale(1); }
     #cover-overlay {
@@ -2544,6 +2555,8 @@ var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 var SUPABASE_BUCKET = 'testimonios-audio';
 var ANALYTICS_SESSION_KEY = 'punto_cero_analytics_session';
 var analyticsMapVisitTracked = false;
+var approvedTestimoniesRequest = null;
+var approvedTestimoniesLastLoadedAt = 0;
 var BASE_SOUND_POINT_COUNT = countUniqueSoundPieces(SOUND_POINTS);
 
 function countUniqueSoundPieces(points) {
@@ -2674,7 +2687,7 @@ function publicLocation(row) {
     'Lugar pendiente de curaduria';
 }
 
-function approvedRowToPoint(row, signedUrl) {
+function approvedRowToPoint(row) {
   var lat = Number(row.latitude);
   var lng = Number(row.longitude);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
@@ -2690,7 +2703,13 @@ function approvedRowToPoint(row, signedUrl) {
     duration: row.audio_duration_seconds ? Math.round(row.audio_duration_seconds / 60) + ' min' : '--',
     tags: ['testimonio comunitario', 'aporte ciudadano', row.testimony_type || 'comunitario'].filter(Boolean),
     coords: [lng, lat],
-    audio: signedUrl,
+    audio: null,
+    audio_bucket: row.audio_bucket || SUPABASE_BUCKET,
+    audio_path: row.audio_path || null,
+    audio_mime_type: row.audio_mime_type || null,
+    audio_original_filename: row.audio_original_filename || null,
+    signed_audio_url: null,
+    signed_audio_promise: null,
     audio_kind: 'file',
     source: 'supabase',
     source_type: 'citizen_submission',
@@ -2726,23 +2745,7 @@ async function loadApprovedTestimonies() {
     });
     var points = [];
     for (var i = 0; i < rows.length; i++) {
-      var signedUrl = null;
-      try {
-        signedUrl = await createSignedAudioUrl(rows[i].audio_bucket, rows[i].audio_path);
-        logSignedAudioDiagnostic({
-          surface: 'mapa_publico',
-          id: rows[i].id,
-          status: rows[i].status,
-          audio_bucket: rows[i].audio_bucket || SUPABASE_BUCKET,
-          audio_path: rows[i].audio_path,
-          audio_mime_type: rows[i].audio_mime_type,
-          audio_original_filename: rows[i].audio_original_filename
-        }, signedUrl);
-      } catch (audioError) {
-        console.warn('No se pudo generar signed URL para testimonio aprobado', rows[i].id, audioError);
-        signedUrl = null;
-      }
-      var point = approvedRowToPoint(rows[i], signedUrl);
+      var point = approvedRowToPoint(rows[i]);
       if (point) {
         points.push(point);
       } else {
@@ -2763,8 +2766,15 @@ async function loadApprovedTestimonies() {
   }
 }
 
-function refreshApprovedTestimonies() {
-  return loadApprovedTestimonies().then(function(points) {
+function refreshApprovedTestimonies(options) {
+  var opts = options || {};
+  var now = Date.now();
+  if (approvedTestimoniesRequest) return approvedTestimoniesRequest;
+  if (!opts.force && approvedTestimoniesLastLoadedAt && now - approvedTestimoniesLastLoadedAt < 30000) {
+    return Promise.resolve(window.PUNTO_CERO_APPROVED_TESTIMONIES || []);
+  }
+  approvedTestimoniesRequest = loadApprovedTestimonies().then(function(points) {
+    approvedTestimoniesLastLoadedAt = Date.now();
     if (map && map.getSource && map.getSource('sounds')) {
       applyFilter();
     }
@@ -2772,7 +2782,10 @@ function refreshApprovedTestimonies() {
   }).catch(function(error) {
     console.error('Error al refrescar testimonios aprobados desde Supabase', error);
     return [];
+  }).finally(function() {
+    approvedTestimoniesRequest = null;
   });
+  return approvedTestimoniesRequest;
 }
 
 /* =================================================================
@@ -3027,17 +3040,59 @@ function isCitizenSubmission(p) {
   return getSourceTypeKey(p) === 'citizen_submission';
 }
 
-function protectedAudioAttrs(p) {
-  return isCitizenSubmission(p) ? ' controlsList="nodownload" oncontextmenu="return false"' : '';
-}
-
 function protectedAudioNoteHTML(p) {
   if (!isCitizenSubmission(p)) return '';
   return '<div class="protected-audio-note">Audio protegido para escucha dentro del archivo. No se ofrece descarga directa.</div>';
 }
 
+function hasDeferredCitizenAudio(p) {
+  return isCitizenSubmission(p) && !!p.audio_path;
+}
+
+function pointHasAudio(p) {
+  return !!(p && (p.audio || hasDeferredCitizenAudio(p)));
+}
+
 function getAudioSource(p) {
+  if (hasDeferredCitizenAudio(p)) return p.signed_audio_url || '';
   return isMobileViewport() && p.audio_mobile ? p.audio_mobile : p.audio;
+}
+
+function protectedAudioPlayerHTML(p) {
+  if (!hasDeferredCitizenAudio(p) && !p.audio) return '';
+  return '<div class="protected-audio-player" data-protected-player>' +
+      '<button class="protected-audio-button" type="button" data-protected-audio-toggle>Reproducir</button>' +
+      '<div class="protected-audio-progress" aria-hidden="true"><span data-protected-audio-progress></span></div>' +
+      '<div class="protected-audio-status" data-protected-audio-status>Listo para escuchar</div>' +
+      '<audio data-protected-audio preload="none" oncontextmenu="return false"></audio>' +
+    '</div>' +
+    protectedAudioNoteHTML(p);
+}
+
+function ensureSignedAudioUrl(point) {
+  if (!point) return Promise.reject(new Error('Punto no disponible'));
+  if (point.signed_audio_url) return Promise.resolve(point.signed_audio_url);
+  if (!hasDeferredCitizenAudio(point)) return Promise.resolve(getAudioSource(point));
+  if (point.signed_audio_promise) return point.signed_audio_promise;
+  point.signed_audio_promise = createSignedAudioUrl(point.audio_bucket, point.audio_path)
+    .then(function(signedUrl) {
+      point.signed_audio_url = signedUrl;
+      point.audio = signedUrl;
+      logSignedAudioDiagnostic({
+        surface: 'reproductor_bajo_demanda',
+        id: point.approved_submission_id,
+        audio_bucket: point.audio_bucket,
+        audio_path: point.audio_path,
+        audio_mime_type: point.audio_mime_type,
+        audio_original_filename: point.audio_original_filename
+      }, signedUrl);
+      return signedUrl;
+    })
+    .catch(function(error) {
+      point.signed_audio_promise = null;
+      throw error;
+    });
+  return point.signed_audio_promise;
 }
 
 function mobileSourceLabel(p) {
@@ -4142,6 +4197,7 @@ function flyToPoint(p) {
 
 function bindAudioAnalytics(container, point) {
   if (!container || !point) return;
+  bindProtectedAudioPlayers(container, point);
   container.querySelectorAll('audio').forEach(function(audioEl) {
     audioEl.addEventListener('play', function() {
       trackAnalyticsEvent('play_audio', point.id);
@@ -4158,6 +4214,84 @@ function bindAudioAnalytics(container, point) {
     link.addEventListener('click', function() {
       trackAnalyticsEvent('play_audio', point.id);
     }, { once: true });
+  });
+}
+
+function formatAudioClock(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  var mins = Math.floor(seconds / 60);
+  var secs = Math.floor(seconds % 60);
+  return mins + ':' + String(secs).padStart(2, '0');
+}
+
+function bindProtectedAudioPlayers(container, point) {
+  if (!container || !point) return;
+  container.querySelectorAll('[data-protected-player]').forEach(function(player) {
+    if (player.dataset.boundProtectedAudio === 'true') return;
+    player.dataset.boundProtectedAudio = 'true';
+    var audio = player.querySelector('audio[data-protected-audio]');
+    var button = player.querySelector('[data-protected-audio-toggle]');
+    var status = player.querySelector('[data-protected-audio-status]');
+    var progress = player.querySelector('[data-protected-audio-progress]');
+    if (!audio || !button) return;
+
+    function setStatus(text) {
+      if (status) status.textContent = text;
+    }
+
+    function updateProgress() {
+      var duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+      var current = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+      if (progress) progress.style.width = duration ? Math.min(100, (current / duration) * 100) + '%' : '0%';
+      if (duration) setStatus(formatAudioClock(current) + ' / ' + formatAudioClock(duration));
+    }
+
+    button.addEventListener('click', function() {
+      if (audio.paused) {
+        button.disabled = true;
+        button.textContent = audio.src ? 'Cargando...' : 'Preparando...';
+        setStatus(audio.src ? 'Cargando audio...' : 'Solicitando acceso al audio...');
+        ensureSignedAudioUrl(point)
+          .then(function(src) {
+            if (!src) throw new Error('Audio no disponible');
+            if (!audio.src) {
+              audio.src = src;
+              audio.load();
+            }
+            button.disabled = false;
+            return audio.play();
+          })
+          .catch(function() {
+            button.disabled = false;
+            button.textContent = 'Reintentar';
+            setStatus('No se pudo iniciar la reproduccion.');
+          });
+      } else {
+        audio.pause();
+      }
+    });
+
+    audio.addEventListener('play', function() {
+      button.disabled = false;
+      button.textContent = 'Pausar';
+      setStatus('Reproduciendo...');
+    });
+    audio.addEventListener('pause', function() {
+      button.disabled = false;
+      if (!audio.ended) button.textContent = 'Reproducir';
+    });
+    audio.addEventListener('loadedmetadata', updateProgress);
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('ended', function() {
+      button.textContent = 'Reproducir';
+      if (progress) progress.style.width = '100%';
+      setStatus('Reproduccion finalizada');
+    });
+    audio.addEventListener('error', function() {
+      button.disabled = false;
+      button.textContent = 'Reintentar';
+      setStatus('Audio no disponible en este momento.');
+    });
   });
 }
 
@@ -4251,7 +4385,7 @@ function buildPopupHTML(p) {
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="#1db954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>' +
         ' Abrir en Spotify' +
       '</a>';
-  } else if (p.audio) {
+  } else if (pointHasAudio(p)) {
     if (p.audio_kind === 'file') {
       var audioSrc = getAudioSource(p);
       var directAudioLink = isCitizenSubmission(p)
@@ -4259,9 +4393,10 @@ function buildPopupHTML(p) {
         : '<a class="spotify-link" data-analytics-audio="1" href="' + audioSrc + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>';
       audioBlock =
         '<div class="audio-wrap">' +
-          '<audio controls preload="none" src="' + audioSrc + '"' + protectedAudioAttrs(p) + '></audio>' +
+          (isCitizenSubmission(p)
+            ? protectedAudioPlayerHTML(p)
+            : '<audio controls preload="none" src="' + audioSrc + '"></audio>') +
           directAudioLink +
-          protectedAudioNoteHTML(p) +
         '</div>';
     } else {
       audioBlock =
@@ -4350,18 +4485,19 @@ function buildMobileSheetHTML(p) {
           'allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" ' +
           'loading="lazy"></iframe>' +
       '</div>';
-  } else if (p.audio) {
+  } else if (pointHasAudio(p)) {
     if (p.audio_kind === 'file') {
       var mobileAudioSrc = getAudioSource(p);
       listenButton =
-        '<button class="mobile-listen-primary" type="button" data-mobile-action="play-inline">' +
+        '<button class="mobile-listen-primary" type="button" data-mobile-action="' + (isCitizenSubmission(p) ? 'focus-player' : 'play-inline') + '">' +
           '&#9654; Escuchar' +
         '</button>';
       player =
         '<div class="mobile-sheet-player audio-wrap" tabindex="-1">' +
-          '<audio controls preload="none" src="' + mobileAudioSrc + '"></audio>' +
-          '<a class="audio-link" data-analytics-audio="1" href="' + mobileAudioSrc + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>' +
-          protectedAudioNoteHTML(p) +
+          (isCitizenSubmission(p)
+            ? protectedAudioPlayerHTML(p)
+            : '<audio controls preload="none" src="' + mobileAudioSrc + '"></audio>' +
+              '<a class="audio-link" data-analytics-audio="1" href="' + mobileAudioSrc + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>') +
         '</div>';
     } else {
       listenButton =
@@ -4792,7 +4928,23 @@ document.getElementById('modal-save').addEventListener('click', function() {
     return mapInitPromise;
   }
 
+  function loadCoverBackground() {
+    var bg = document.getElementById('cover-bg');
+    if (!bg) return;
+    var src = window.matchMedia('(min-width: 769px)').matches
+      ? 'portada de fondo.png'
+      : 'portada-fondo-mobile.jpg';
+    var img = new Image();
+    img.decoding = 'async';
+    img.onload = function() {
+      bg.style.backgroundImage = 'url("' + src.replace(/"/g, '%22') + '")';
+      bg.classList.add('image-ready');
+    };
+    img.src = src;
+  }
+
   setTimeout(function () { splash.classList.add('visible'); }, 60);
+  setTimeout(loadCoverBackground, 1200);
   if (audio) {
     audio.preload = 'none';
     audio.volume = 0.75;
