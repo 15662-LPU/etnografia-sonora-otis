@@ -439,6 +439,8 @@
       white-space: nowrap;
     }
     .welcome-play:hover { background: #388bfd; }
+    .welcome-play.loading { cursor: wait; opacity: .86; }
+    .welcome-play.error { background: #da3633; border-color: #ff7b72; }
     .welcome-progress {
       height: 10px;
       border-radius: 999px;
@@ -1490,11 +1492,11 @@
               <span id="welcome-time" class="welcome-time" aria-live="polite">0:00 / --:--</span>
             </div>
             <p class="optional-note">Escuchar este audio es opcional. Puedes continuar directamente con el formulario si as&iacute; lo prefieres.</p>
-            <audio id="welcome-audio" class="welcome-audio-native" preload="metadata" src="bienvenida-mapa-sonoro-otis.mp3"></audio>
+            <audio id="welcome-audio" class="welcome-audio-native" preload="none" data-src="bienvenida-mapa-sonoro-otis.mp3"></audio>
             <noscript>
               <div class="welcome-fallback">
                 <p>Si deseas escuchar el mensaje de bienvenida, usa este reproductor.</p>
-                <audio controls preload="metadata" src="bienvenida-mapa-sonoro-otis.mp3"></audio>
+                <audio controls preload="none" src="bienvenida-mapa-sonoro-otis.mp3"></audio>
               </div>
             </noscript>
           </div>
@@ -1768,6 +1770,12 @@
       var time = document.getElementById('welcome-time');
       if (!wrapper || !audio || !button || !progress || !fill || !time) return;
 
+      function ensureWelcomeAudioSource() {
+        if (audio.src || !audio.dataset.src) return;
+        audio.src = audio.dataset.src;
+        audio.load();
+      }
+
       function updateProgress() {
         var duration = Number.isFinite(audio.duration) ? audio.duration : 0;
         var current = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
@@ -1782,27 +1790,36 @@
           button.innerHTML = '&#8635; Reproducir de nuevo';
           button.setAttribute('aria-label', 'Reproducir de nuevo el mensaje de bienvenida');
           wrapper.classList.remove('is-playing');
+          button.classList.remove('loading', 'error');
           return;
         }
         if (audio.paused) {
           button.innerHTML = '&#9654; Escuchar bienvenida';
           button.setAttribute('aria-label', 'Escuchar mensaje de bienvenida');
           wrapper.classList.remove('is-playing');
+          button.classList.remove('loading');
         } else {
           button.innerHTML = '&#9208; Pausar';
           button.setAttribute('aria-label', 'Pausar mensaje de bienvenida');
           wrapper.classList.add('is-playing');
+          button.classList.remove('loading', 'error');
         }
       }
 
       button.addEventListener('click', function() {
         if (audio.ended) audio.currentTime = 0;
         if (audio.paused) {
+          ensureWelcomeAudioSource();
+          button.classList.add('loading');
+          button.classList.remove('error');
+          button.innerHTML = '&#8987; Cargando...';
           var playResult = audio.play();
           if (playResult && typeof playResult.catch === 'function') {
             playResult.catch(function() {
               wrapper.classList.remove('is-playing');
-              updateButton();
+              button.classList.remove('loading');
+              button.classList.add('error');
+              button.innerHTML = '&#9888; No se pudo reproducir';
             });
           }
         } else {
@@ -1817,6 +1834,12 @@
       audio.addEventListener('ended', function() {
         updateProgress();
         updateButton();
+      });
+      audio.addEventListener('error', function() {
+        wrapper.classList.remove('is-playing');
+        button.classList.remove('loading');
+        button.classList.add('error');
+        button.innerHTML = '&#9888; Audio no disponible';
       });
 
       updateProgress();

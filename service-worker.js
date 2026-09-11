@@ -1,9 +1,9 @@
-const CACHE_NAME = 'punto-cero-shell-v2';
+const CACHE_PREFIX = 'punto-cero-';
+const CACHE_NAME = 'punto-cero-shell-v3';
 const SHELL_ASSETS = [
   './',
   './index.html',
-  './portada-fondo-mobile.jpg',
-  './portada-punto-cero-mobile.jpg'
+  './portada-fondo-mobile.jpg'
 ];
 
 self.addEventListener('install', function(event) {
@@ -19,7 +19,10 @@ self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(keys) {
       return Promise.all(keys.map(function(key) {
-        if (key !== CACHE_NAME) return caches.delete(key);
+        if (key !== CACHE_NAME && key.startsWith(CACHE_PREFIX)) {
+          return caches.delete(key);
+        }
+        return undefined;
       }));
     })
   );
@@ -34,6 +37,7 @@ self.addEventListener('fetch', function(event) {
   const isHtml = request.mode === 'navigate';
   const isAudio = request.destination === 'audio' || /\.(mp3|wav)$/i.test(url.pathname);
 
+  if (url.origin !== self.location.origin) return;
   if (isAudio) return;
 
   if (isHtml) {
