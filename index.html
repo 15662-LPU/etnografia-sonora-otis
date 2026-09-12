@@ -3105,6 +3105,10 @@ var PARTICIPANT_PROFILE_LABELS = {
   rescatista_voluntario: 'Rescatista/voluntario',
   servidor_publico: 'Servicio público',
   turista_visitante: 'Visitante',
+  estudiante: 'Estudiante',
+  docente: 'Docente',
+  medico: 'Salud',
+  otra: 'Otro perfil',
   otro: 'Otro perfil'
 };
 
@@ -3112,8 +3116,10 @@ var TESTIMONY_TYPE_LABELS = {
   personal: 'Experiencia personal',
   familiar: 'Familia',
   comunitario: 'Comunidad',
+  colonia_comunidad: 'Comunidad',
   institucional: 'Trabajo/escuela',
   estudiante: 'Estudiante',
+  trabajo_escuela: 'Trabajo/escuela',
   otro: 'Otro relato'
 };
 
@@ -3144,8 +3150,8 @@ function participantBadgeHTML(p) {
   var info = getParticipantInfo(p);
   if (!info) return '';
   var html = '';
-  if (info.profile) html += '<span class="participant-pill">Perfil: ' + info.profile + '</span>';
-  if (info.type) html += '<span class="participant-pill type">Relato: ' + info.type + '</span>';
+  if (info.profile) html += '<span class="participant-pill" title="Tipo de participante">Participación: ' + info.profile + '</span>';
+  if (info.type) html += '<span class="participant-pill type" title="Tipo de relato">Relato: ' + info.type + '</span>';
   return html;
 }
 
