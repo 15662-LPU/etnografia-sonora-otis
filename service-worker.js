@@ -1,9 +1,10 @@
 const CACHE_PREFIX = 'punto-cero-';
-const CACHE_NAME = 'punto-cero-shell-v5';
+const CACHE_NAME = 'punto-cero-shell-v6';
 const SHELL_ASSETS = [
   './',
   './index.html',
-  './captura.html'
+  './captura.html',
+  './curaduria.html'
 ];
 
 function cacheResponse(request, response) {
@@ -53,15 +54,12 @@ self.addEventListener('fetch', function(event) {
     const network = fetch(request)
       .then(function(response) { return cacheResponse(request, response); });
 
-    event.waitUntil(network.catch(function() {}));
     event.respondWith(
-      caches.match(request, { ignoreSearch: true })
-        .then(function(cached) {
-          if (cached) return cached;
-          return network.catch(function() {
-            return caches.match('./index.html');
-          });
-        })
+      network.catch(function() {
+        return caches.match(request, { ignoreSearch: true }).then(function(cached) {
+          return cached || caches.match('./index.html');
+        });
+      })
     );
     return;
   }
