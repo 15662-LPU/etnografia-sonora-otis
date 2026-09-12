@@ -4534,6 +4534,7 @@ function buildPopupHTML(p) {
   var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
   var srcType = getSourceType(p);
   var origin = getOriginInfo(p);
+  var participantBadges = participantBadgeHTML(p);
 
   /* Barra de control accesible (siempre visible, especialmente en móvil) */
   var closebar =

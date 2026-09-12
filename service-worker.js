@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'punto-cero-';
-const CACHE_NAME = 'punto-cero-shell-v6';
+const CACHE_NAME = 'punto-cero-shell-v7';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -51,7 +51,7 @@ self.addEventListener('fetch', function(event) {
   if (isAudio) return;
 
   if (isHtml) {
-    const network = fetch(request)
+    const network = fetch(new Request(request, { cache: 'reload' }))
       .then(function(response) { return cacheResponse(request, response); });
 
     event.respondWith(
