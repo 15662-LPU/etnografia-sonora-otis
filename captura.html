@@ -2959,5 +2959,198 @@
     validateAudioFile();
     updatePreview();
   </script>
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      if (!params.has('debugAudio')) return;
+
+      var tracked = new WeakSet();
+      var playSeq = 0;
+      var playResults = [];
+      var originalPlay = window.HTMLMediaElement && window.HTMLMediaElement.prototype.play;
+
+      function audioLabel(audio) {
+        if (!audio) return 'audio';
+        if (audio.id) return '#' + audio.id;
+        return audio.getAttribute('data-audio-label') || audio.className || 'audio';
+      }
+
+      function mediaError(audio) {
+        if (!audio || !audio.error) return null;
+        var names = {
+          1: 'MEDIA_ERR_ABORTED',
+          2: 'MEDIA_ERR_NETWORK',
+          3: 'MEDIA_ERR_DECODE',
+          4: 'MEDIA_ERR_SRC_NOT_SUPPORTED'
+        };
+        return {
+          code: audio.error.code,
+          name: names[audio.error.code] || 'MEDIA_ERR_UNKNOWN',
+          message: audio.error.message || ''
+        };
+      }
+
+      function serialiseAudio(audio) {
+        return {
+          label: audioLabel(audio),
+          present: Boolean(audio),
+          id: audio.id || '',
+          className: String(audio.className || ''),
+          attrSrc: audio.getAttribute('src') || '',
+          dataSrc: audio.getAttribute('data-src') || audio.getAttribute('data-audio-src') || '',
+          currentSrc: audio.currentSrc || '',
+          paused: audio.paused,
+          ended: audio.ended,
+          currentTime: Number(audio.currentTime || 0).toFixed(3),
+          duration: Number.isFinite(audio.duration) ? Number(audio.duration).toFixed(3) : String(audio.duration),
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+          muted: audio.muted,
+          volume: audio.volume,
+          error: mediaError(audio),
+          events: JSON.parse(audio.dataset.audioDebugEvents || '{}'),
+          removedFromDom: !document.documentElement.contains(audio)
+        };
+      }
+
+      function connectionInfo() {
+        var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!c) return null;
+        return {
+          effectiveType: c.effectiveType || '',
+          type: c.type || '',
+          downlink: c.downlink || null,
+          rtt: c.rtt || null,
+          saveData: Boolean(c.saveData)
+        };
+      }
+
+      function collect() {
+        return {
+          time: new Date().toISOString(),
+          url: location.href,
+          userAgent: navigator.userAgent,
+          online: navigator.onLine,
+          connection: connectionInfo(),
+          serviceWorker: {
+            supported: 'serviceWorker' in navigator,
+            controlled: Boolean(navigator.serviceWorker && navigator.serviceWorker.controller),
+            controllerScript: navigator.serviceWorker && navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : ''
+          },
+          audios: Array.prototype.map.call(document.querySelectorAll('audio'), serialiseAudio),
+          playResults: playResults.slice(-20)
+        };
+      }
+
+      function ensurePanel() {
+        var panel = document.getElementById('audio-debug-panel');
+        if (panel) return panel;
+        panel = document.createElement('section');
+        panel.id = 'audio-debug-panel';
+        panel.dataset.open = 'false';
+        panel.style.cssText = 'position:fixed;z-index:99999;left:8px;bottom:8px;max-width:calc(100vw - 16px);max-height:46vh;overflow:auto;background:#0d1117;color:#c9d1d9;border:1px solid #58a6ff;border-radius:8px;padding:8px;font:12px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;box-shadow:0 12px 36px rgba(0,0,0,.45)';
+        panel.innerHTML =
+          '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+            '<button type="button" data-audio-debug-toggle>Audio debug</button>' +
+            '<span data-audio-debug-actions style="display:none">' +
+              '<button type="button" data-audio-debug-refresh style="margin-right:6px">Actualizar</button>' +
+              '<button type="button" data-audio-debug-copy>Copiar</button>' +
+            '</span>' +
+          '</div>' +
+          '<pre data-audio-debug-output style="display:none;white-space:pre-wrap;margin:0"></pre>';
+        document.body.appendChild(panel);
+        panel.querySelector('[data-audio-debug-toggle]').addEventListener('click', function() {
+          var open = panel.dataset.open !== 'true';
+          panel.dataset.open = open ? 'true' : 'false';
+          panel.style.right = open ? '8px' : 'auto';
+          panel.querySelector('[data-audio-debug-actions]').style.display = open ? '' : 'none';
+          panel.querySelector('[data-audio-debug-output]').style.display = open ? '' : 'none';
+          render();
+        });
+        panel.querySelector('[data-audio-debug-refresh]').addEventListener('click', render);
+        panel.querySelector('[data-audio-debug-copy]').addEventListener('click', function() {
+          var text = panel.querySelector('[data-audio-debug-output]').textContent;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(function() {});
+          }
+        });
+        return panel;
+      }
+
+      function render() {
+        var panel = ensurePanel();
+        panel.querySelector('[data-audio-debug-output]').textContent = JSON.stringify(collect(), null, 2);
+      }
+
+      function trackAudio(audio) {
+        if (!audio || tracked.has(audio)) return;
+        tracked.add(audio);
+        var counts = {};
+        ['loadstart', 'loadedmetadata', 'canplay', 'play', 'playing', 'pause', 'waiting', 'stalled', 'suspend', 'emptied', 'ended', 'error', 'timeupdate'].forEach(function(type) {
+          counts[type] = 0;
+          audio.addEventListener(type, function() {
+            counts[type] += 1;
+            audio.dataset.audioDebugEvents = JSON.stringify(counts);
+            render();
+          });
+        });
+        audio.dataset.audioDebugEvents = JSON.stringify(counts);
+      }
+
+      function scan(skipRender) {
+        document.querySelectorAll('audio').forEach(trackAudio);
+        if (!skipRender) render();
+      }
+
+      if (originalPlay) {
+        window.HTMLMediaElement.prototype.play = function() {
+          var audio = this;
+          var result = {
+            id: ++playSeq,
+            label: audioLabel(audio),
+            at: new Date().toISOString(),
+            srcAtCall: audio.currentSrc || audio.getAttribute('src') || '',
+            dataSrcAtCall: audio.getAttribute('data-src') || audio.getAttribute('data-audio-src') || '',
+            outcome: 'pending'
+          };
+          playResults.push(result);
+          try {
+            var promise = originalPlay.apply(audio, arguments);
+            if (promise && typeof promise.then === 'function') {
+              promise.then(function() {
+                result.outcome = 'resolved';
+                result.currentTime = audio.currentTime;
+                render();
+              }).catch(function(error) {
+                result.outcome = 'rejected';
+                result.errorName = error && error.name || '';
+                result.errorMessage = error && error.message || '';
+                render();
+              });
+            } else {
+              result.outcome = 'no-promise';
+            }
+            render();
+            return promise;
+          } catch (error) {
+            result.outcome = 'threw';
+            result.errorName = error && error.name || '';
+            result.errorMessage = error && error.message || '';
+            render();
+            throw error;
+          }
+        };
+      }
+
+      new MutationObserver(function() { scan(true); }).observe(document.documentElement, { childList: true, subtree: true });
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scan, { once: true });
+      } else {
+        scan();
+      }
+      window.addEventListener('online', render);
+      window.addEventListener('offline', render);
+    })();
+  </script>
 </body>
 </html>
