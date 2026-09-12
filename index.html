@@ -222,6 +222,8 @@
     .origin-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 8px; font-size: .66rem; font-weight: 800; border: 1px solid #30363d; background: #21262d; color: #c9d1d9; }
     .origin-pill.citizen { border-color: #f0883e88; background: rgba(240, 136, 62, .16); color: #ffb77c; }
     .origin-pill.archive { border-color: #58a6ff66; background: rgba(88, 166, 255, .12); color: #9dccff; }
+    .participant-pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 8px; font-size: .66rem; font-weight: 800; border: 1px solid #3fb95066; background: rgba(63, 185, 80, .12); color: #9be9a8; }
+    .participant-pill.type { border-color: #d2a8ff66; background: rgba(210, 168, 255, .12); color: #d2a8ff; }
     .protected-audio-note { margin-top: 8px; color: #ffb77c; font-size: .72rem; line-height: 1.4; }
     .protected-audio-player { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: center; }
     .protected-audio-button { border: 1px solid #f0883e88; background: rgba(240, 136, 62, .16); color: #fff2e6; border-radius: 999px; padding: 8px 14px; font-size: .78rem; font-weight: 800; cursor: pointer; }
@@ -2566,12 +2568,54 @@ var ANALYTICS_SESSION_KEY = 'punto_cero_analytics_session';
 var analyticsMapVisitTracked = false;
 var approvedTestimoniesRequest = null;
 var approvedTestimoniesLastLoadedAt = 0;
-var BASE_SOUND_POINT_COUNT = countUniqueSoundPieces(SOUND_POINTS);
+var BASE_SOUND_POINT_COUNT = 0;
+
+function normalizeSoundKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[?#].*$/, '')
+    .replace(/^https?:\/\/open\.spotify\.com\/embed\//, 'https://open.spotify.com/')
+    .replace(/\/$/, '');
+}
+
+function getSoundPieceKey(point) {
+  if (!point) return '';
+  if (point.audio_path) return 'storage:' + normalizeSoundKey(point.audio_bucket || SUPABASE_BUCKET) + '/' + normalizeSoundKey(point.audio_path);
+  if (point.spotify) return 'spotify:' + normalizeSoundKey(point.spotify);
+  if (point.audio) return 'audio:' + normalizeSoundKey(point.audio);
+  return 'id:' + String(point.id);
+}
+
+function dedupeSoundPoints(points, context) {
+  var seen = {};
+  var duplicates = [];
+  var unique = [];
+  (points || []).forEach(function(point) {
+    var key = getSoundPieceKey(point);
+    if (key && seen[key]) {
+      duplicates.push({
+        kept: seen[key].id,
+        omitted: point.id,
+        title: point.title,
+        key: key
+      });
+      return;
+    }
+    if (key) seen[key] = point;
+    unique.push(point);
+  });
+  if (duplicates.length && window.console) {
+    console.warn('Punto Cero: audios repetidos omitidos en ' + (context || 'mapa'), duplicates);
+  }
+  window.PUNTO_CERO_AUDIO_DUPLICATES = duplicates;
+  return unique;
+}
 
 function countUniqueSoundPieces(points) {
   var seen = {};
   return points.reduce(function(total, point) {
-    var key = String(point.id);
+    var key = getSoundPieceKey(point);
     if (seen[key]) return total;
     seen[key] = true;
     return total + 1;
@@ -2584,6 +2628,8 @@ function updateHeroSoundCount(total) {
   if (el) el.textContent = count + ' piezas sonoras';
 }
 
+SOUND_POINTS = dedupeSoundPoints(SOUND_POINTS, 'corpus estatico');
+BASE_SOUND_POINT_COUNT = countUniqueSoundPieces(SOUND_POINTS);
 updateHeroSoundCount(BASE_SOUND_POINT_COUNT);
 
 function supabaseHeaders(extra) {
@@ -2701,6 +2747,8 @@ function approvedRowToPoint(row) {
   var lng = Number(row.longitude);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   var label = publicLocation(row);
+  var participantProfile = row.perfil_participante || row.participant_profile || row.profile || null;
+  var testimonyType = row.tipo_relato || row.testimony_type || null;
   return {
     id: 'supabase-' + row.id,
     title: row.public_name_or_alias ? 'Historia de ' + row.public_name_or_alias : 'Historia comunitaria',
@@ -2710,7 +2758,7 @@ function approvedRowToPoint(row) {
     recorder: row.public_name_or_alias || 'Testimonio comunitario',
     date: row.interview_date || 'Fecha no registrada',
     duration: row.audio_duration_seconds ? Math.round(row.audio_duration_seconds / 60) + ' min' : '--',
-    tags: ['testimonio comunitario', 'aporte ciudadano', row.testimony_type || 'comunitario'].filter(Boolean),
+    tags: ['testimonio comunitario', 'aporte ciudadano', testimonyType || 'comunitario', participantProfile].filter(Boolean),
     coords: [lng, lat],
     audio: null,
     audio_bucket: row.audio_bucket || SUPABASE_BUCKET,
@@ -2723,6 +2771,8 @@ function approvedRowToPoint(row) {
     source: 'supabase',
     source_type: 'citizen_submission',
     origin: 'participacion_ciudadana',
+    participant_profile: participantProfile,
+    testimony_type_detail: testimonyType,
     approved_submission_id: row.id
   };
 }
@@ -2761,7 +2811,8 @@ async function loadApprovedTestimonies() {
         console.warn('Testimonio aprobado omitido por coordenadas invalidas', rows[i].id, rows[i].latitude, rows[i].longitude);
       }
     }
-    SOUND_POINTS = SOUND_POINTS.filter(function(p) { return p.source !== 'supabase'; }).concat(points);
+    points = dedupeSoundPoints(points, 'testimonios aprobados');
+    SOUND_POINTS = dedupeSoundPoints(SOUND_POINTS.filter(function(p) { return p.source !== 'supabase'; }).concat(points), 'mapa completo');
     window.PUNTO_CERO_APPROVED_TESTIMONIES_ROWS = rows;
     window.PUNTO_CERO_APPROVED_TESTIMONIES = points;
     updateHeroSoundCount();
@@ -3045,6 +3096,59 @@ function getOriginInfo(p) {
   };
 }
 
+var PARTICIPANT_PROFILE_LABELS = {
+  habitante_comunidad: 'Habitante',
+  trabajador_salud: 'Salud',
+  docente_estudiante: 'Docente/estudiante',
+  comerciante_trabajador: 'Comercio/trabajo',
+  pescador_productor: 'Pesca/campo',
+  rescatista_voluntario: 'Rescatista/voluntario',
+  servidor_publico: 'Servicio público',
+  turista_visitante: 'Visitante',
+  otro: 'Otro perfil'
+};
+
+var TESTIMONY_TYPE_LABELS = {
+  personal: 'Experiencia personal',
+  familiar: 'Familia',
+  comunitario: 'Comunidad',
+  institucional: 'Trabajo/escuela',
+  estudiante: 'Estudiante',
+  otro: 'Otro relato'
+};
+
+function readableParticipantLabel(value, dictionary) {
+  if (!value) return '';
+  var key = String(value).trim().toLowerCase();
+  if (dictionary[key]) return dictionary[key];
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^\w/, function(ch) { return ch.toUpperCase(); });
+}
+
+function getParticipantInfo(p) {
+  if (!isCitizenSubmission(p)) return null;
+  var profile = readableParticipantLabel(p.participant_profile || p.perfil_participante, PARTICIPANT_PROFILE_LABELS);
+  var type = readableParticipantLabel(p.testimony_type_detail || p.tipo_relato || p.testimony_type, TESTIMONY_TYPE_LABELS);
+  if (!profile && !type) type = 'Comunidad';
+  return {
+    profile: profile,
+    type: type,
+    primary: profile || type,
+    secondary: profile && type ? type : ''
+  };
+}
+
+function participantBadgeHTML(p) {
+  var info = getParticipantInfo(p);
+  if (!info) return '';
+  var html = '';
+  if (info.profile) html += '<span class="participant-pill">Perfil: ' + info.profile + '</span>';
+  if (info.type) html += '<span class="participant-pill type">Relato: ' + info.type + '</span>';
+  return html;
+}
+
 function isCitizenSubmission(p) {
   return getSourceTypeKey(p) === 'citizen_submission';
 }
@@ -3142,6 +3246,8 @@ function pointsToGeoJSON(pts) {
           source_type: sourceType,
           origin: p.origin || (sourceType === 'citizen_submission' ? 'participacion_ciudadana' : 'archivo_sonoro'),
           audio_type: audioType,
+          participant_profile: p.participant_profile || p.perfil_participante || '',
+          testimony_type_detail: p.testimony_type_detail || p.tipo_relato || p.testimony_type || '',
           spotify: p.spotify ? 1 : 0,
           importance: p.importance || 0
         }
@@ -3417,8 +3523,9 @@ function renderList(points) {
     item.setAttribute('aria-label', 'Escuchar ' + p.title);
     item.style.setProperty('--cat-color', cat.color);
     var origin = getOriginInfo(p);
+    var participantInfo = getParticipantInfo(p);
     var badge = origin.key === 'citizen_submission'
-      ? ' <span style="color:#f0883e;font-size:.65rem">[Participación ciudadana]</span>'
+      ? ' <span style="color:#f0883e;font-size:.65rem">[' + (participantInfo && participantInfo.primary ? participantInfo.primary : 'Participación ciudadana') + ']</span>'
       : (p.spotify ? ' <span style="color:#1db954;font-size:.65rem">[Spotify]</span>' : '');
     item.innerHTML =
       '<div class="point-dot"></div>' +
@@ -4120,10 +4227,14 @@ function renderMobilePointCard(p) {
   var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
   var srcType = getSourceType(p);
   var origin = getOriginInfo(p);
+  var participantBadges = participantBadgeHTML(p);
   var listenControl = '<button class="listen" type="button" data-mobile-action="details">Escuchar</button>';
 
   card.innerHTML =
-    '<div class="origin-pill ' + origin.dotClass + '"><span class="origin-dot ' + origin.dotClass + '"></span>' + origin.label + '</div>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' +
+      '<span class="origin-pill ' + origin.dotClass + '"><span class="origin-dot ' + origin.dotClass + '"></span>' + origin.label + '</span>' +
+      participantBadges +
+    '</div>' +
     '<div class="mobile-point-kicker" style="color:' + cat.color + '">' + cat.emoji + ' ' + cat.label + '</div>' +
     '<div class="mobile-point-title">' + p.title + '</div>' +
     '<div class="mobile-point-meta">' + srcType.label + ' &middot; ' + origin.label + ' &middot; ' + p.location + '<br>' + p.recorder + '</div>' +
@@ -4516,8 +4627,9 @@ function buildPopupHTML(p) {
     '<span style="background:' + period.color + '18;border:1px solid ' + period.color + '44;color:' + period.color + ';padding:2px 7px;border-radius:10px;font-size:.65rem">' + period.label + '</span>' : '';
 
   return closebar + coverImg +
-    '<div style="display:flex;justify-content:flex-start;margin-bottom:8px">' +
+    '<div style="display:flex;justify-content:flex-start;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
       '<span class="origin-pill ' + origin.dotClass + '"><span class="origin-dot ' + origin.dotClass + '"></span>' + origin.label + '</span>' +
+      participantBadges +
     '</div>' +
     /* Cabecera con categoría y tipo de fuente */
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
@@ -4560,6 +4672,7 @@ function buildMobileSheetHTML(p) {
   var cat = CATEGORIES[p.category] || { color: '#8b949e', label: 'Otro', emoji: '' };
   var srcType = getSourceType(p);
   var origin = getOriginInfo(p);
+  var participantBadges = participantBadgeHTML(p);
   var mins = parseDurationMinutes(p.duration);
   var durationLabel = mins !== null ? Math.round(mins) + ' min' : 'Duración no registrada';
   var tags = (p.tags || []).map(function(t) {
@@ -4612,8 +4725,9 @@ function buildMobileSheetHTML(p) {
   }
 
   return (
-    '<div style="margin-bottom:8px">' +
+    '<div style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap">' +
       '<span class="origin-pill ' + origin.dotClass + '"><span class="origin-dot ' + origin.dotClass + '"></span>' + origin.label + '</span>' +
+      participantBadges +
     '</div>' +
     '<div class="mobile-sheet-kicker">' +
       '<span style="color:' + cat.color + '">' + cat.emoji + ' ' + cat.label + '</span>' +
@@ -4630,6 +4744,7 @@ function buildMobileSheetHTML(p) {
       '<span>Voz/fuente: ' + p.recorder + '</span>' +
       '<span>Origen: ' + origin.label + '</span>' +
       '<span>Tipo: ' + srcType.label + '</span>' +
+      (getParticipantInfo(p) ? '<span>Participante: ' + getParticipantInfo(p).primary + '</span>' : '') +
     '</div>' +
     (tags ? '<div class="mobile-sheet-tags">' + tags + '</div>' : '') +
     '<div style="margin-top:12px;display:flex;justify-content:flex-end">' +

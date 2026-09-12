@@ -194,6 +194,54 @@
       line-height: 1.25;
     }
 
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 4px 0 8px;
+    }
+
+    .breakdown-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      min-width: 0;
+    }
+
+    .breakdown-card h3 {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: .9rem;
+    }
+
+    .breakdown-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      color: var(--muted);
+      font-size: .8rem;
+      border-top: 1px solid rgba(48, 54, 61, .55);
+      padding-top: 6px;
+    }
+
+    .breakdown-row:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .breakdown-row strong {
+      color: var(--text);
+      font-size: .9rem;
+      white-space: nowrap;
+    }
+
     .card {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -303,6 +351,7 @@
       .bar, main { width: min(100% - 20px, 1120px); }
       .login-grid, .detail-grid { grid-template-columns: 1fr; }
       .stats-grid { grid-template-columns: 1fr; }
+      .breakdown-grid { grid-template-columns: 1fr; }
       .toolbar, .card-head { flex-direction: column; align-items: stretch; }
       .actions button, .actions .link-button { width: 100%; }
     }
@@ -363,6 +412,20 @@
           <div class="stat-card"><strong id="stat-play-audio">--</strong><span>Audios reproducidos</span></div>
           <div class="stat-card"><strong id="stat-submit-testimony">--</strong><span>Testimonios recibidos</span></div>
         </div>
+        <div class="breakdown-grid" aria-label="Desglose agregado de testimonios">
+          <div class="breakdown-card">
+            <h3>Participación por perfil</h3>
+            <div id="profile-breakdown" class="breakdown-list"><div class="small">Sin datos cargados.</div></div>
+          </div>
+          <div class="breakdown-card">
+            <h3>Tipo de relato</h3>
+            <div id="type-breakdown" class="breakdown-list"><div class="small">Sin datos cargados.</div></div>
+          </div>
+          <div class="breakdown-card">
+            <h3>Estado de curaduría</h3>
+            <div id="status-breakdown" class="breakdown-list"><div class="small">Sin datos cargados.</div></div>
+          </div>
+        </div>
         <div id="analytics-status" class="status"></div>
       </section>
       <div id="cards" class="cards"></div>
@@ -385,7 +448,40 @@
     var cards = document.getElementById('cards');
     var sessionLabel = document.getElementById('session-label');
     var analyticsStatus = document.getElementById('analytics-status');
+    var profileBreakdown = document.getElementById('profile-breakdown');
+    var typeBreakdown = document.getElementById('type-breakdown');
+    var statusBreakdown = document.getElementById('status-breakdown');
     var currentSession = null;
+
+    var PROFILE_LABELS = {
+      habitante_comunidad: 'Habitantes / comunidad',
+      trabajador_salud: 'Personal de salud',
+      docente_estudiante: 'Docentes / estudiantes',
+      comerciante_trabajador: 'Comerciantes / trabajadores',
+      pescador_productor: 'Pescadores / productores',
+      rescatista_voluntario: 'Rescatistas / voluntariado',
+      servidor_publico: 'Servidores publicos',
+      turista_visitante: 'Visitantes / turistas',
+      estudiante: 'Estudiantes',
+      docente: 'Docentes',
+      medico: 'Personal medico',
+      otro: 'Otros perfiles'
+    };
+
+    var TESTIMONY_TYPE_LABELS = {
+      personal: 'Experiencia personal',
+      familiar: 'Familia',
+      comunitario: 'Colonia / comunidad',
+      institucional: 'Trabajo o escuela',
+      estudiante: 'Estudiante',
+      otro: 'Otro relato'
+    };
+
+    var STATUS_LABELS = {
+      pending: 'Pendientes',
+      approved: 'Aprobados',
+      rejected: 'Rechazados'
+    };
 
     function setStatus(el, message, type) {
       el.textContent = message || '';
@@ -399,6 +495,16 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+    }
+
+    function labelFromValue(value, labels, fallback) {
+      var key = String(value || '').trim().toLowerCase();
+      if (!key) return fallback || 'No registrado';
+      if (labels && labels[key]) return labels[key];
+      return key
+        .replace(/_/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/^\w/, function(ch) { return ch.toUpperCase(); });
     }
 
     function headers(session, extra) {
@@ -526,6 +632,58 @@
       return parseCountHeader(response);
     }
 
+    function incrementCount(target, label) {
+      target[label] = (target[label] || 0) + 1;
+    }
+
+    function renderBreakdown(container, counts) {
+      if (!container) return;
+      var entries = Object.keys(counts || {}).map(function(label) {
+        return { label: label, count: counts[label] };
+      }).sort(function(a, b) {
+        return b.count - a.count || a.label.localeCompare(b.label, 'es');
+      });
+      if (!entries.length) {
+        container.innerHTML = '<div class="small">Sin datos registrados.</div>';
+        return;
+      }
+      container.innerHTML = entries.map(function(item) {
+        return '<div class="breakdown-row"><span>' + escapeHtml(item.label) + '</span><strong>' + item.count.toLocaleString('es-MX') + '</strong></div>';
+      }).join('');
+    }
+
+    async function fetchSubmissionSummaryRows() {
+      var response = await api('/rest/v1/submissions?select=id,status,testimony_type,tipo_relato,perfil_participante', {}, currentSession);
+      var data = await response.json().catch(function() { return []; });
+      if (response.ok) return Array.isArray(data) ? data : [];
+
+      response = await api('/rest/v1/submissions?select=id,status,testimony_type', {}, currentSession);
+      data = await response.json().catch(function() { return []; });
+      if (!response.ok) throw new Error(data.message || 'No se pudo leer el desglose de testimonios.');
+      return Array.isArray(data) ? data : [];
+    }
+
+    async function loadSubmissionBreakdownStats() {
+      var rows = await fetchSubmissionSummaryRows();
+      var profileCounts = {};
+      var typeCounts = {};
+      var statusCounts = {};
+
+      rows.forEach(function(row) {
+        var profile = labelFromValue(row.perfil_participante, PROFILE_LABELS, 'Sin perfil registrado');
+        var type = labelFromValue(row.tipo_relato || row.testimony_type, TESTIMONY_TYPE_LABELS, 'Sin tipo registrado');
+        var status = labelFromValue(row.status, STATUS_LABELS, 'Sin estado');
+        incrementCount(profileCounts, profile);
+        incrementCount(typeCounts, type);
+        incrementCount(statusCounts, status);
+      });
+
+      renderBreakdown(profileBreakdown, profileCounts);
+      renderBreakdown(typeBreakdown, typeCounts);
+      renderBreakdown(statusBreakdown, statusCounts);
+      return rows.length;
+    }
+
     async function loadAnalyticsStats() {
       setStatus(analyticsStatus, 'Cargando estadisticas...', '');
       var since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -534,13 +692,14 @@
         countAnalyticsEvents('&event_type=eq.visit_home&created_at=gte.' + encodeURIComponent(since)),
         countAnalyticsEvents('&event_type=eq.open_point'),
         countAnalyticsEvents('&event_type=eq.play_audio'),
-        countAnalyticsEvents('&event_type=eq.submit_testimony')
+        countAnalyticsEvents('&event_type=eq.submit_testimony'),
+        loadSubmissionBreakdownStats()
       ]);
       setStat('stat-visits-total', totals[0]);
       setStat('stat-visits-30', totals[1]);
       setStat('stat-open-point', totals[2]);
       setStat('stat-play-audio', totals[3]);
-      setStat('stat-submit-testimony', totals[4]);
+      setStat('stat-submit-testimony', totals[5]);
       setStatus(analyticsStatus, 'Estadisticas actualizadas.', 'ok');
     }
 
@@ -824,7 +983,8 @@
             field('Comunidad / colonia', row.community) +
             field('Municipio / localidad', [row.municipality, row.locality].filter(Boolean).join(' / ')) +
             field('Fecha', row.interview_date) +
-            field('Tipo', row.testimony_type) +
+            field('Tipo de relato', labelFromValue(row.tipo_relato || row.testimony_type, TESTIMONY_TYPE_LABELS, row.testimony_type || 'No registrado')) +
+            field('Perfil participante', labelFromValue(row.perfil_participante, PROFILE_LABELS, 'No registrado')) +
             field('Coordenadas', coordinates(row)) +
             field('Archivo', row.audio_original_filename || row.audio_path) +
           '</div>' +
