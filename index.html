@@ -2110,7 +2110,7 @@ var SOUND_POINTS = [
     coords: [-99.76, 16.79],
     spotify: null,
     audio: 'assets/audio/puntocero-otis-mezcla.mp3',
-    audio_mobile: 'assets/audio/puntocero-otis-mezcla-mobile.mp3',
+    audio_mobile: 'assets/audio/puntocero-otis-mezcla-cellular.mp3',
     audio_kind: 'file',
     importance: 5,
   },
@@ -4187,6 +4187,10 @@ function bindMobileSheetControls(container) {
             audio.addEventListener('pause', function() {
               btn.disabled = false;
               if (!audio.ended) btn.innerHTML = '&#9654; Reanudar';
+              if (status && !audio.ended) {
+                status.textContent = 'Pausado.';
+                status.classList.remove('error');
+              }
             });
             audio.addEventListener('ended', function() {
               btn.disabled = false;
@@ -4217,7 +4221,24 @@ function bindMobileSheetControls(container) {
             status.textContent = 'Cargando audio...';
             status.classList.remove('error');
           }
+          var pendingSrc = audio.getAttribute('data-audio-src');
+          if (!audio.getAttribute('src') && pendingSrc) {
+            audio.setAttribute('src', pendingSrc);
+          }
           audio.preload = 'auto';
+          audio.dataset.playAttempt = String(Date.now());
+          var playAttempt = audio.dataset.playAttempt;
+          if (audio.readyState === 0) audio.load();
+          window.setTimeout(function() {
+            if (audio.dataset.playAttempt === playAttempt && audio.paused && !audio.error) {
+              btn.disabled = false;
+              btn.innerHTML = '&#8635; Reintentar';
+              if (status) {
+                status.textContent = 'La red esta tardando en cargar el audio. Puedes reintentar o abrir el audio en otra pestana.';
+                status.classList.add('error');
+              }
+            }
+          }, 12000);
           audio.play().catch(function() {
             btn.disabled = false;
             btn.innerHTML = '&#8635; Reintentar';
@@ -4573,7 +4594,7 @@ function buildMobileSheetHTML(p) {
         '<div class="mobile-sheet-player audio-wrap" tabindex="-1">' +
           (isCitizenSubmission(p)
             ? protectedAudioPlayerHTML(p)
-            : '<audio controls preload="none" src="' + mobileAudioSrc + '"></audio>' +
+            : '<audio controls preload="none" playsinline data-audio-src="' + mobileAudioSrc + '"></audio>' +
               '<div class="mobile-audio-status" data-mobile-audio-status>Listo para cargar al reproducir.</div>' +
               '<a class="audio-link" data-analytics-audio="1" href="' + mobileAudioSrc + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>') +
         '</div>';
