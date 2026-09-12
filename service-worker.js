@@ -1,8 +1,9 @@
 const CACHE_PREFIX = 'punto-cero-';
-const CACHE_NAME = 'punto-cero-shell-v4';
+const CACHE_NAME = 'punto-cero-shell-v5';
 const SHELL_ASSETS = [
   './',
-  './index.html'
+  './index.html',
+  './captura.html'
 ];
 
 function cacheResponse(request, response) {

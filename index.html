@@ -923,6 +923,15 @@
         width: 100%;
         display: block;
       }
+      .mobile-audio-status {
+        margin-top: 8px;
+        color: #8b949e;
+        font-size: .76rem;
+        line-height: 1.4;
+      }
+      .mobile-audio-status.error {
+        color: #ffb4ac;
+      }
       .mobile-sheet-player iframe {
         width: 100%;
         display: block;
@@ -4143,11 +4152,79 @@ function bindMobileSheetControls(container) {
       }
       if (btn.dataset.mobileAction === 'play-inline') {
         var audio = container.querySelector('.mobile-sheet-player audio');
+        var status = container.querySelector('[data-mobile-audio-status]');
         if (audio) {
+          if (audio.dataset.mobileAudioBound !== 'true') {
+            audio.dataset.mobileAudioBound = 'true';
+            audio.addEventListener('waiting', function() {
+              if (status) {
+                status.textContent = 'Cargando audio...';
+                status.classList.remove('error');
+              }
+            });
+            audio.addEventListener('canplay', function() {
+              if (status && audio.paused) {
+                status.textContent = 'Audio listo. Toca reproducir si no inicia.';
+                status.classList.remove('error');
+              }
+            });
+            audio.addEventListener('play', function() {
+              btn.disabled = false;
+              btn.innerHTML = '&#9208; Pausar';
+              if (status) {
+                status.textContent = 'Reproduciendo...';
+                status.classList.remove('error');
+              }
+            });
+            audio.addEventListener('playing', function() {
+              btn.disabled = false;
+              btn.innerHTML = '&#9208; Pausar';
+              if (status) {
+                status.textContent = 'Reproduciendo...';
+                status.classList.remove('error');
+              }
+            });
+            audio.addEventListener('pause', function() {
+              btn.disabled = false;
+              if (!audio.ended) btn.innerHTML = '&#9654; Reanudar';
+            });
+            audio.addEventListener('ended', function() {
+              btn.disabled = false;
+              btn.innerHTML = '&#8635; Reproducir de nuevo';
+              if (status) {
+                status.textContent = 'Reproduccion finalizada.';
+                status.classList.remove('error');
+              }
+            });
+            audio.addEventListener('error', function() {
+              btn.disabled = false;
+              btn.innerHTML = '&#8635; Reintentar';
+              if (status) {
+                status.textContent = 'No se pudo cargar el audio. Revisa tu conexion e intenta de nuevo.';
+                status.classList.add('error');
+              }
+            });
+          }
+
+          if (!audio.paused) {
+            audio.pause();
+            return;
+          }
+
+          btn.disabled = true;
+          btn.textContent = 'Cargando audio...';
+          if (status) {
+            status.textContent = 'Cargando audio...';
+            status.classList.remove('error');
+          }
           audio.preload = 'auto';
-          audio.load();
           audio.play().catch(function() {
-            if (window.console) console.info('El navegador requiere tocar el control nativo para iniciar el audio.');
+            btn.disabled = false;
+            btn.innerHTML = '&#8635; Reintentar';
+            if (status) {
+              status.textContent = 'El navegador no pudo iniciar el audio. Toca reintentar o usa el control nativo.';
+              status.classList.add('error');
+            }
           });
         }
       }
@@ -4497,6 +4574,7 @@ function buildMobileSheetHTML(p) {
           (isCitizenSubmission(p)
             ? protectedAudioPlayerHTML(p)
             : '<audio controls preload="none" src="' + mobileAudioSrc + '"></audio>' +
+              '<div class="mobile-audio-status" data-mobile-audio-status>Listo para cargar al reproducir.</div>' +
               '<a class="audio-link" data-analytics-audio="1" href="' + mobileAudioSrc + '" target="_blank" rel="noopener noreferrer">Abrir audio</a>') +
         '</div>';
     } else {
