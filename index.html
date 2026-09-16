@@ -34,8 +34,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; height: 100vh; display: flex; overflow: hidden; }
-    #cover-audio,
-    #welcome-audio { display: none; }
+    #cover-audio { display: none; }
     #map { flex: 1; position: relative; min-width: 0; min-height: 0; }
     #sidebar-header { padding: 20px 18px 14px; border-bottom: 1px solid #30363d; }
     #sidebar-header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: #f0f6fc; }
@@ -1108,7 +1107,6 @@
       align-items: center; align-self: flex-start;
       margin: -22px 0 36px;
     }
-    #cover-welcome,
     #cover-capture {
       display: inline-flex; align-items: center; gap: 8px;
       margin: 0;
@@ -1120,18 +1118,9 @@
       text-decoration: none; letter-spacing: .03em;
       transition: background .18s, border-color .18s, transform .18s;
     }
-    #cover-welcome {
-      cursor: pointer; font-family: inherit;
-    }
     #cover-capture:hover {
       background: rgba(255,255,255,0.14);
       border-color: rgba(88,166,255,0.45);
-      transform: translateY(-2px);
-    }
-    #cover-welcome:hover,
-    #cover-welcome.playing {
-      background: rgba(88,166,255,0.16);
-      border-color: rgba(88,166,255,0.48);
       transform: translateY(-2px);
     }
     .cover-footer {
@@ -1356,7 +1345,6 @@
         gap: 8px;
         margin: 0 0 10px;
       }
-      #cover-welcome,
       #cover-capture {
         min-height: 42px;
         padding: 0 14px;
@@ -1401,8 +1389,7 @@
 <body>
 
 <!-- PORTADA SPLASH -->
-<audio id="cover-audio" loop preload="none" data-src="performanceotis.mp3"></audio>
-<audio id="welcome-audio" preload="none" data-src="bienvenida-mapa-sonoro-otis.mp3"></audio>
+<audio id="cover-audio" loop preload="none" data-src="performanceOtissonoromapa.mp3"></audio>
 <div id="cover-splash">
   <div id="cover-bg"></div>
   <div id="cover-overlay"></div>
@@ -1430,10 +1417,6 @@
     <button id="cover-enter" type="button">Explorar el mapa <span class="cover-arrow">→</span></button>
     <div id="cover-map-status" class="cover-map-status" role="status" aria-live="polite"></div>
     <div class="cover-secondary-actions">
-      <button id="cover-welcome" type="button">
-        <span class="welcome-icon">&#9654;</span>
-        <span id="welcome-label">Escuchar bienvenida</span>
-      </button>
       <a id="cover-capture" href="captura.html">🎙️ Comparte tu historia</a>
     </div>
     <div class="cover-footer">MapLibre GL JS &nbsp;&middot;&nbsp; Spotify &nbsp;&middot;&nbsp; Guerrero, México &nbsp;&middot;&nbsp; 2023&ndash;2025 &nbsp;&middot;&nbsp; <a href="metodologia.html">Metodología y ética</a> &nbsp;&middot;&nbsp; <a href="curaduria.html">Curaduría</a></div>
@@ -1682,10 +1665,6 @@
   var mapInitPromise = null;
   var splash = document.getElementById('cover-splash');
   var audio = document.getElementById('cover-audio');
-  var welcomeAudio = document.getElementById('welcome-audio');
-  var welcomeBtn = document.getElementById('cover-welcome');
-  var welcomeIcon = welcomeBtn ? welcomeBtn.querySelector('.welcome-icon') : null;
-  var welcomeLabel = document.getElementById('welcome-label');
   var soundBtn = document.getElementById('cover-sound-btn');
   var sndIcon = soundBtn ? soundBtn.querySelector('.snd-icon') : null;
   var sndLabel = document.getElementById('snd-label');
@@ -1787,39 +1766,6 @@
     if (sndIcon) sndIcon.innerHTML = '&#9888;';
     if (sndLabel) sndLabel.textContent = 'Audio no disponible';
   }
-  function setWelcomePlayUI() {
-    if (!welcomeBtn) return;
-    welcomeBtn.classList.add('playing');
-    welcomeBtn.classList.remove('loading', 'error');
-    if (welcomeIcon) welcomeIcon.innerHTML = '&#10074;&#10074;';
-    if (welcomeLabel) welcomeLabel.textContent = 'Pausar bienvenida';
-  }
-  function setWelcomeIdleUI() {
-    if (!welcomeBtn) return;
-    welcomeBtn.classList.remove('playing', 'loading', 'error');
-    if (welcomeIcon) welcomeIcon.innerHTML = '&#9654;';
-    if (welcomeLabel) welcomeLabel.textContent = 'Escuchar bienvenida';
-  }
-  function setWelcomeLoadingUI() {
-    if (!welcomeBtn) return;
-    welcomeBtn.classList.add('loading');
-    welcomeBtn.classList.remove('playing', 'error');
-    if (welcomeIcon) welcomeIcon.innerHTML = '&#8987;';
-    if (welcomeLabel) welcomeLabel.textContent = 'Cargando bienvenida';
-  }
-  function setWelcomeErrorUI() {
-    if (!welcomeBtn) return;
-    welcomeBtn.classList.remove('playing', 'loading');
-    welcomeBtn.classList.add('error');
-    if (welcomeIcon) welcomeIcon.innerHTML = '&#9888;';
-    if (welcomeLabel) welcomeLabel.textContent = 'No se pudo cargar';
-  }
-  function pauseWelcomeAudio(reset) {
-    if (!welcomeAudio) return;
-    welcomeAudio.pause();
-    if (reset) welcomeAudio.currentTime = 0;
-    setWelcomeIdleUI();
-  }
   function pausePerformanceAudio(reset) {
     if (!audio) return;
     audio.pause();
@@ -1917,7 +1863,6 @@
       .then(function() {
         if (typeof window.initPuntoCeroMap === 'function') window.initPuntoCeroMap();
         if (typeof window.trackMapVisitOnce === 'function') window.trackMapVisitOnce();
-        pauseWelcomeAudio(true);
         stopBlowing();
         splash.classList.add('exiting');
         var fade = setInterval(function () {
@@ -1970,13 +1915,11 @@
     audio.volume = 0.75;
     audio.muted = false;
   }
-  if (welcomeAudio) welcomeAudio.preload = 'none';
   setIdleUI();
 
   if (soundBtn && audio) {
     soundBtn.addEventListener('click', function () {
       if (audio.paused) {
-        pauseWelcomeAudio(false);
         ensureAudioSource(audio);
         audio.muted = false;
         audio.volume = 0.75;
@@ -1999,31 +1942,6 @@
     audio.addEventListener('error', setAudioErrorUI);
   }
 
-  if (welcomeBtn && welcomeAudio) {
-    welcomeBtn.addEventListener('click', function () {
-      if (welcomeAudio.paused) {
-        pausePerformanceAudio(false);
-        ensureAudioSource(welcomeAudio);
-        welcomeAudio.volume = 1;
-        setWelcomeLoadingUI();
-        welcomeAudio.play().then(setWelcomePlayUI).catch(setWelcomeErrorUI);
-      } else {
-        pauseWelcomeAudio(false);
-      }
-    });
-    welcomeAudio.addEventListener('play', function () {
-      pausePerformanceAudio(false);
-      setWelcomePlayUI();
-    });
-    welcomeAudio.addEventListener('pause', function () {
-      if (!welcomeAudio.ended) setWelcomeIdleUI();
-    });
-    welcomeAudio.addEventListener('ended', function () {
-      setWelcomeIdleUI();
-      welcomeAudio.currentTime = 0;
-    });
-    welcomeAudio.addEventListener('error', setWelcomeErrorUI);
-  }
 
   if (enterBtn) enterBtn.addEventListener('click', enterMap);
 
