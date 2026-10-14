@@ -897,7 +897,6 @@ var BASE_SOUND_POINT_COUNT = 0;
 function normalizeSoundKey(value) {
   return String(value || '')
     .trim()
-    .toLowerCase()
     .replace(/[?#].*$/, '')
     .replace(/^https?:\/\/open\.spotify\.com\/embed\//, 'https://open.spotify.com/')
     .replace(/\/$/, '');
@@ -905,14 +904,15 @@ function normalizeSoundKey(value) {
 
 function getSoundPieceKey(point) {
   if (!point) return '';
-  if (point.audio_path) return 'storage:' + normalizeSoundKey(point.audio_bucket || SUPABASE_BUCKET) + '/' + normalizeSoundKey(point.audio_path);
+  if (point.audio_sha256) return 'sha256:' + point.audio_sha256;
+  if (point.audio_path) return 'storage:' + String(point.audio_bucket || SUPABASE_BUCKET) + '/' + normalizeAudioPath(point.audio_path);
   if (point.spotify) return 'spotify:' + normalizeSoundKey(point.spotify);
   if (point.audio) return 'audio:' + normalizeSoundKey(point.audio);
   return 'id:' + String(point.id);
 }
 
 function dedupeSoundPoints(points, context) {
-  var seen = {};
+  var seen = Object.create(null);
   var duplicates = [];
   var unique = [];
   (points || []).forEach(function(point) {
@@ -932,7 +932,11 @@ function dedupeSoundPoints(points, context) {
   if (duplicates.length && window.console) {
     console.warn('Punto Cero: audios repetidos omitidos en ' + (context || 'mapa'), duplicates);
   }
-  window.PUNTO_CERO_AUDIO_DUPLICATES = duplicates;
+  window.PUNTO_CERO_AUDIO_DUPLICATES_BY_CONTEXT = window.PUNTO_CERO_AUDIO_DUPLICATES_BY_CONTEXT || {};
+  window.PUNTO_CERO_AUDIO_DUPLICATES_BY_CONTEXT[context || 'mapa'] = duplicates;
+  window.PUNTO_CERO_AUDIO_DUPLICATES = Object.keys(window.PUNTO_CERO_AUDIO_DUPLICATES_BY_CONTEXT).reduce(function(all, name) {
+    return all.concat(window.PUNTO_CERO_AUDIO_DUPLICATES_BY_CONTEXT[name]);
+  }, []);
   return unique;
 }
 
@@ -1066,10 +1070,96 @@ function publicLocation(row) {
     'Lugar pendiente de curaduria';
 }
 
+// Verified content hashes avoid downloading the existing corpus on mobile.
+// Unknown uploads are hashed once per session before they enter the map.
+var approvedAudioFingerprintCache = Object.create(null);
+
+function approvedAudioStorageKey(row) {
+  return String(row.audio_bucket || SUPABASE_BUCKET) + '/' + normalizeAudioPath(row.audio_path);
+}
+
+async function loadApprovedAudioFingerprintManifest() {
+  try {
+    var response = await fetch('data/audio-fingerprints.json?v=20261014', { cache: 'no-cache' });
+    if (!response.ok) throw new Error('No se pudo leer el indice de audios');
+    return await response.json();
+  } catch (error) {
+    console.warn('Se verificaran las huellas directamente desde los archivos', error);
+    return { files: {}, preferred_submission_ids: {} };
+  }
+}
+
+async function fingerprintApprovedAudio(row, manifest) {
+  if (!row.audio_path) return null;
+  var key = approvedAudioStorageKey(row);
+  var verified = manifest.files && manifest.files[key];
+  if (verified && verified.size_bytes === Number(row.audio_size_bytes) && /^[a-f0-9]{64}$/.test(verified.sha256)) {
+    return verified.sha256;
+  }
+  var cacheKey = key + ':' + String(row.audio_size_bytes) + ':' + String(row.curated_at || '');
+  if (!approvedAudioFingerprintCache[cacheKey]) {
+    approvedAudioFingerprintCache[cacheKey] = (async function() {
+      if (!window.crypto || !window.crypto.subtle) throw new Error('Verificacion SHA-256 no disponible');
+      var signedUrl = await createSignedAudioUrl(row.audio_bucket || SUPABASE_BUCKET, row.audio_path);
+      if (!signedUrl) throw new Error('Audio sin acceso de lectura');
+      var response = await fetch(signedUrl, { signal: AbortSignal.timeout(45000) });
+      if (!response.ok) throw new Error('No se pudo leer el audio para verificarlo');
+      var bytes = await response.arrayBuffer();
+      var digest = await window.crypto.subtle.digest('SHA-256', bytes);
+      return Array.from(new Uint8Array(digest)).map(function(value) {
+        return value.toString(16).padStart(2, '0');
+      }).join('');
+    })().catch(function(error) {
+      delete approvedAudioFingerprintCache[cacheKey];
+      throw error;
+    });
+  }
+  return approvedAudioFingerprintCache[cacheKey];
+}
+
+async function fingerprintApprovedRows(rows, manifest) {
+  var next = 0;
+  var unverified = [];
+  async function worker() {
+    while (next < rows.length) {
+      var row = rows[next++];
+      try {
+        row._verified_audio_sha256 = await fingerprintApprovedAudio(row, manifest);
+        if (!row._verified_audio_sha256) throw new Error('Audio sin archivo asociado');
+      } catch (error) {
+        row._verified_audio_sha256 = null;
+        unverified.push(row.id);
+        console.warn('No se pudo comprobar si el audio esta duplicado', row.id, error);
+      }
+    }
+  }
+  await Promise.all([worker(), worker()]);
+  window.PUNTO_CERO_UNVERIFIED_AUDIO_IDS = unverified;
+  return rows;
+}
+
+function sortApprovedRowsForPublication(rows, manifest) {
+  var preferred = manifest.preferred_submission_ids || {};
+  return rows.slice().sort(function(a, b) {
+    var aPreferred = preferred[a._verified_audio_sha256] === a.id;
+    var bPreferred = preferred[b._verified_audio_sha256] === b.id;
+    if (aPreferred !== bPreferred) return aPreferred ? -1 : 1;
+    // Stable ordering keeps the same representative on every refresh.
+    return String(a.curated_at || '').localeCompare(String(b.curated_at || '')) || String(a.id).localeCompare(String(b.id));
+  });
+}
+
+function publicCoordinateOrNull(value) {
+  if (value == null || String(value).trim() === '') return null;
+  var number = Number(String(value).trim().replace(',', '.'));
+  return Number.isFinite(number) ? number : null;
+}
+
 function approvedRowToPoint(row) {
-  var lat = Number(row.latitude);
-  var lng = Number(row.longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  var lat = publicCoordinateOrNull(row.latitude);
+  var lng = publicCoordinateOrNull(row.longitude);
+  if (lat === null || lng === null || lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  if (!row._verified_audio_sha256) return null;
   var label = publicLocation(row);
   var participantProfile = row.perfil_participante || row.participant_profile || row.profile || null;
   var testimonyType = row.tipo_relato || row.testimony_type || null;
@@ -1087,6 +1177,7 @@ function approvedRowToPoint(row) {
     audio: null,
     audio_bucket: row.audio_bucket || SUPABASE_BUCKET,
     audio_path: row.audio_path || null,
+    audio_sha256: row._verified_audio_sha256 || null,
     audio_mime_type: row.audio_mime_type || null,
     audio_original_filename: row.audio_original_filename || null,
     signed_audio_url: null,
@@ -1126,13 +1217,16 @@ async function loadApprovedTestimonies() {
     var rows = (await response.json()).filter(function(row) {
       return row.status === 'approved';
     });
+    var manifest = await loadApprovedAudioFingerprintManifest();
+    await fingerprintApprovedRows(rows, manifest);
+    rows = sortApprovedRowsForPublication(rows, manifest);
     var points = [];
     for (var i = 0; i < rows.length; i++) {
       var point = approvedRowToPoint(rows[i]);
       if (point) {
         points.push(point);
       } else {
-        console.warn('Testimonio aprobado omitido por coordenadas invalidas', rows[i].id, rows[i].latitude, rows[i].longitude);
+        console.warn('Testimonio aprobado pendiente de coordenadas validas o verificacion de audio', rows[i].id);
       }
     }
     points = dedupeSoundPoints(points, 'testimonios aprobados');

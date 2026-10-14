@@ -1,0 +1,232 @@
+[
+  {
+    "id": "d0fc7829-6b0a-498e-9a98-fe9b72e0381e",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/d0fc7829-6b0a-498e-9a98-fe9b72e0381e/1782079032584-curaduria-test.wav",
+    "audio_size_bytes": 44,
+    "latitude": 16.8531,
+    "longitude": -99.8237,
+    "curated_at": "2026-06-21T22:31:16.52+00:00"
+  },
+  {
+    "id": "83cb0584-fc2d-486e-a171-b6b1850d7368",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/83cb0584-fc2d-486e-a171-b6b1850d7368/1782187661030-WhatsApp-Audio-2026-06-22-at-9.27.14-PM.ogg",
+    "audio_size_bytes": 129919,
+    "latitude": 16.882,
+    "longitude": -99.873,
+    "curated_at": "2026-06-23T04:09:02.771+00:00"
+  },
+  {
+    "id": "c5e3986c-0bf3-4a63-9176-57fa87d4f4a0",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/c5e3986c-0bf3-4a63-9176-57fa87d4f4a0/1782509803552-historia-punto-cero.wav",
+    "audio_size_bytes": 5719724,
+    "latitude": 24.160275,
+    "longitude": -110.293943,
+    "curated_at": "2026-06-26T21:41:49.406+00:00"
+  },
+  {
+    "id": "a5b4b5dd-e696-43b5-b618-dc67c26a8765",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/a5b4b5dd-e696-43b5-b618-dc67c26a8765/1782509794968-historia-punto-cero.wav",
+    "audio_size_bytes": 5719724,
+    "latitude": 24.160275,
+    "longitude": -110.293943,
+    "curated_at": "2026-06-26T22:38:40.851+00:00"
+  },
+  {
+    "id": "a971be2d-10f2-452f-916a-4c0a635820f6",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/a971be2d-10f2-452f-916a-4c0a635820f6/1782510375407-inbound1754750365496944150.m4a",
+    "audio_size_bytes": 5101301,
+    "latitude": 16.8828,
+    "longitude": -99.6143,
+    "curated_at": "2026-06-26T21:52:49.011+00:00"
+  },
+  {
+    "id": "397cd3a0-382b-43ab-965b-ed19028a46be",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/397cd3a0-382b-43ab-965b-ed19028a46be/1782511448654-inbound7163981970246268379.m4a",
+    "audio_size_bytes": 5101301,
+    "latitude": 16.880379,
+    "longitude": -99.897025,
+    "curated_at": "2026-06-26T22:23:59.245+00:00"
+  },
+  {
+    "id": "00ced058-392a-4c4d-9b3d-efcb8227e724",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/00ced058-392a-4c4d-9b3d-efcb8227e724/1782513493298-1782512307338-historia-punto-cero.wav",
+    "audio_size_bytes": 5331644,
+    "latitude": 16.931218,
+    "longitude": -99.82029,
+    "curated_at": "2026-06-26T22:38:50.206+00:00"
+  },
+  {
+    "id": "6ccd8dbd-4bf6-4196-beae-09c7c83d9390",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/6ccd8dbd-4bf6-4196-beae-09c7c83d9390/1782517707307-WhatsApp-Audio-2026-06-26-at-5.45.57-PM.ogg",
+    "audio_size_bytes": 134264,
+    "latitude": 16.807555,
+    "longitude": -99.828479,
+    "curated_at": "2026-06-26T23:49:42.808+00:00"
+  },
+  {
+    "id": "75c1307d-d569-421a-9027-9b245c8dc144",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/75c1307d-d569-421a-9027-9b245c8dc144/1782527893703-AUD-20260626-WA0092-mp3cut.net-.mp3",
+    "audio_size_bytes": 973100,
+    "latitude": 16.860758,
+    "longitude": -99.903557,
+    "curated_at": "2026-06-27T02:39:57.136+00:00"
+  },
+  {
+    "id": "2e9b48f3-266c-485e-970f-c3a0f580797c",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/2e9b48f3-266c-485e-970f-c3a0f580797c/1782512307338-historia-punto-cero.wav",
+    "audio_size_bytes": 5331644,
+    "latitude": 16.8893,
+    "longitude": -99.6068,
+    "curated_at": "2026-06-26T22:24:54.878+00:00"
+  },
+  {
+    "id": "30bc53ec-d902-42e7-bc3c-3d251e92418c",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/30bc53ec-d902-42e7-bc3c-3d251e92418c/1782538278314-ANONIMOMP.mp3",
+    "audio_size_bytes": 8643782,
+    "latitude": 16.803507,
+    "longitude": -99.806992,
+    "curated_at": "2026-06-27T05:32:01.908+00:00"
+  },
+  {
+    "id": "60055ac3-e6bc-4806-b846-74af1934fb17",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/60055ac3-e6bc-4806-b846-74af1934fb17/1782538500833-WhatsApp-Audio-2026-06-26-at-10.20.16-PM.ogg",
+    "audio_size_bytes": 350334,
+    "latitude": 16.865125,
+    "longitude": -99.909195,
+    "curated_at": "2026-06-27T05:35:21.854+00:00"
+  },
+  {
+    "id": "359bfcbf-5225-4754-b16c-fbc503b63d3a",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/359bfcbf-5225-4754-b16c-fbc503b63d3a/1782777449814-Grabacion-de-entrevista-4.mp3",
+    "audio_size_bytes": 11657158,
+    "latitude": 16.766313,
+    "longitude": -99.76673,
+    "curated_at": "2026-06-30T21:29:51.771+00:00"
+  },
+  {
+    "id": "f0f585cf-035f-4fe4-843c-306a84acbd42",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/f0f585cf-035f-4fe4-843c-306a84acbd42/1782855310500-ECMencuentroparotillas2.mp3",
+    "audio_size_bytes": 17273113,
+    "latitude": 16.913846,
+    "longitude": -99.824349,
+    "curated_at": "2026-06-30T21:36:36.07+00:00"
+  },
+  {
+    "id": "9f35c5f1-2870-4550-94b8-de11c5315570",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/9f35c5f1-2870-4550-94b8-de11c5315570/1782855134221-COMIEencuentroparotillas.mp3",
+    "audio_size_bytes": 16748365,
+    "latitude": 16.87805,
+    "longitude": -99.621176,
+    "curated_at": "2026-06-30T21:36:43.918+00:00"
+  },
+  {
+    "id": "8ad26040-4b8c-42e2-b05d-0dfcb9290644",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/8ad26040-4b8c-42e2-b05d-0dfcb9290644/1782855391603-comi2Encuentroparotillas.mp3",
+    "audio_size_bytes": 6776905,
+    "latitude": 16.875508,
+    "longitude": -99.619455,
+    "curated_at": "2026-06-30T22:27:50.686+00:00"
+  },
+  {
+    "id": "093c474c-5721-4a6b-a9c2-f57f8d62c656",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/093c474c-5721-4a6b-a9c2-f57f8d62c656/1782855452418-comi3Ecuentroparotilla.mp3",
+    "audio_size_bytes": 1279906,
+    "latitude": 16.872803,
+    "longitude": -99.625791,
+    "curated_at": "2026-06-30T22:27:58.662+00:00"
+  },
+  {
+    "id": "9f7848a1-e0be-4cf0-a410-89ebc85adb77",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/9f7848a1-e0be-4cf0-a410-89ebc85adb77/1782859324631-CPEncuentroparotillas.mp3",
+    "audio_size_bytes": 4733711,
+    "latitude": 16.800265,
+    "longitude": -99.657022,
+    "curated_at": "2026-06-30T22:42:39.626+00:00"
+  },
+  {
+    "id": "cddeb162-2c07-4bc4-a3c8-eaa9c12025b5",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/cddeb162-2c07-4bc4-a3c8-eaa9c12025b5/1782859105905-comi4encuentroparotilla.mp3",
+    "audio_size_bytes": 5659700,
+    "latitude": 16.875062,
+    "longitude": -99.617204,
+    "curated_at": "2026-06-30T22:42:47.906+00:00"
+  },
+  {
+    "id": "432871f9-2d90-4d89-bed8-c5488a838823",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/432871f9-2d90-4d89-bed8-c5488a838823/1783973981976-historia-punto-cero.wav",
+    "audio_size_bytes": 5731244,
+    "latitude": 16.88611,
+    "longitude": -99.61056,
+    "curated_at": "2026-07-13T21:55:59.713+00:00"
+  },
+  {
+    "id": "4e7c55c7-f109-45ba-881a-97529eff38c4",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/4e7c55c7-f109-45ba-881a-97529eff38c4/1787943413139-Otis-.m4a",
+    "audio_size_bytes": 1434258,
+    "latitude": null,
+    "longitude": null,
+    "curated_at": "2026-08-30T02:04:57.262+00:00"
+  },
+  {
+    "id": "219c1637-6350-40a2-83c0-98020d1a2cd3",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/219c1637-6350-40a2-83c0-98020d1a2cd3/1787944728568-historia-punto-cero.wav",
+    "audio_size_bytes": 5276166,
+    "latitude": 16.868619,
+    "longitude": -99.875929,
+    "curated_at": "2026-08-30T02:06:03.217+00:00"
+  },
+  {
+    "id": "26bd2bc8-d512-4cb5-87cc-f47fde8fa361",
+    "status": "approved",
+    "audio_bucket": "testimonios-audio",
+    "audio_path": "pending/26bd2bc8-d512-4cb5-87cc-f47fde8fa361/1790785652522-Grabacion-de-entrevista-8.mp3",
+    "audio_size_bytes": 10666264,
+    "latitude": 16.8011,
+    "longitude": -99.8103,
+    "curated_at": "2026-09-30T20:40:34.172+00:00"
+  }
+]

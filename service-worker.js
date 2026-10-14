@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'punto-cero-';
-const CACHE_NAME = 'punto-cero-shell-v11';
+const CACHE_NAME = 'punto-cero-shell-v12';
 const SHELL_ASSETS = [
   './',
   './index.html'
