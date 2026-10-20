@@ -3324,4 +3324,119 @@ document.getElementById('modal-save').addEventListener('click', function() {
 
   initMobileAudioSheet();
 })();
+/* Otis: tramo del best track NHC, 24–25 octubre 2023. Independiente del corpus sonoro. */
+(function initOtisTrack() {
+  var positions = [
+    {utc:'2023-10-24T18:00:00Z',coordinates:[-99.4,14.9],windKt:100,stage:'Huracán en aproximación'},
+    {utc:'2023-10-25T00:00:00Z',coordinates:[-99.6,15.7],windKt:130,stage:'Huracán en aproximación'},
+    {utc:'2023-10-25T03:00:00Z',coordinates:[-99.7,16.1],windKt:145,stage:'Máxima intensidad'},
+    {utc:'2023-10-25T06:00:00Z',coordinates:[-99.8,16.7],windKt:145,stage:'Antes de tocar tierra'},
+    {utc:'2023-10-25T06:45:00Z',coordinates:[-99.9,16.8],windKt:140,pressureHpa:929,stage:'Entrada a tierra · categoría 5',landfall:true},
+    {utc:'2023-10-25T12:00:00Z',coordinates:[-100.3,17.7],windKt:85,stage:'Huracán tierra adentro'},
+    {utc:'2023-10-25T18:00:00Z',coordinates:[-100.7,18.6],windKt:40,stage:'Tormenta tropical'}
+  ];
+  var enabled = false, markers = [], popup = null;
+  var sourceId = 'pc-otis-track-source', lineId = 'pc-otis-track-line';
+  var panel = document.createElement('section');
+  panel.className = 'otis-track-control';
+  panel.setAttribute('aria-label', 'Trayectoria meteorológica de Otis');
+  panel.innerHTML = '<button type="button" class="otis-toggle" aria-expanded="false" aria-controls="otis-track-details">Ver trayectoria de Otis</button>' +
+    '<div id="otis-track-details" hidden><div class="otis-heading"><span>OTIS / 2023</span><strong>Del Pacífico a tierra</strong><small>24–25 octubre · 7 posiciones NHC</small></div><div class="otis-actions"><button type="button" class="otis-overview">Ver recorrido completo</button><button type="button" class="otis-landfall">Ubicar entrada a tierra</button></div>' +
+    '<fieldset class="otis-basemaps"><legend>Mapa base</legend><button type="button" data-otis-base="dark" aria-pressed="true">Oscuro</button><button type="button" data-otis-base="voyager" aria-pressed="false">Calles</button><button type="button" data-otis-base="positron" aria-pressed="false">Claro</button></fieldset>' +
+    '<details open><summary>Posiciones y fuente · 24–25 oct. 2023</summary><ol class="otis-position-list"></ol>' +
+    '<p>Trayectoria reconstruida a partir de posiciones estimadas del NHC. La línea une registros disponibles y no delimita el área afectada.</p>' +
+    '<a href="https://www.nhc.noaa.gov/data/tcr/EP182023_Otis.pdf" target="_blank" rel="noopener">Fuente: NHC · informe de Otis · tabla 1, p. 11</a></details></div>';
+  document.getElementById('map').appendChild(panel);
+  var toggle = panel.querySelector('.otis-toggle');
+  var content = panel.querySelector('#otis-track-details');
+  function localDate(p) {
+    var d = new Date(p.utc);
+    return new Intl.DateTimeFormat('es-MX', {timeZone:'America/Mexico_City',day:'numeric',month:'long',year:'numeric'}).format(d) + ' · ' +
+      new Intl.DateTimeFormat('es-MX', {timeZone:'America/Mexico_City',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d) + ' h de Acapulco';
+  }
+  function reduced() { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  function closePopup() { if (popup) { popup.remove(); popup = null; } }
+  function selectPosition(p, trigger) {
+    closePopup();
+    var selectedIndex = positions.indexOf(p);
+    panel.querySelectorAll('.otis-position-list button').forEach(function(button,i){ button.setAttribute('aria-pressed',String(i===selectedIndex)); });
+    markers.forEach(function(marker,i){marker.getElement().classList.toggle('otis-selected',i===selectedIndex);});
+    var card = document.createElement('article');
+    card.className = 'otis-track-card';
+    card.innerHTML = '<span class="otis-card-eyebrow">POSICIÓN ' + (positions.indexOf(p)+1) + ' / 7</span><h3>' + (p.landfall ? 'Centro estimado al tocar tierra' : p.stage) + '</h3><p>' + localDate(p) +
+      '<br>' + p.utc.slice(11,16) + ' UTC</p><p>Longitud: ' + p.coordinates[0] + ' · Latitud: ' + p.coordinates[1] +
+      '</p><p class="otis-wind">Vientos máximos sostenidos<br><strong>' + Math.round(p.windKt * 1.852) + ' <span>km/h</span></strong></p><p>Etapa: ' + p.stage +
+      (p.pressureHpa ? '<br>Presión: ' + p.pressureHpa + ' hPa' : '') + '</p>' +
+      '<a href="https://www.nhc.noaa.gov/data/tcr/EP182023_Otis.pdf" target="_blank" rel="noopener">Fuente: NHC · informe de Otis · tabla 1, p. 11</a>';
+    var ownPopup = new maplibregl.Popup({className:'otis-popup',maxWidth:'290px',offset:22,closeOnClick:false})
+      .setLngLat(p.coordinates).setDOMContent(card).addTo(map);
+    popup = ownPopup;
+    var close = ownPopup.getElement().querySelector('.maplibregl-popup-close-button');
+    close.setAttribute('aria-label','Cerrar ficha meteorológica');
+    close.focus({preventScroll:true});
+    ownPopup.getElement().addEventListener('keydown',function(e) { if(e.key === 'Escape') ownPopup.remove(); });
+    ownPopup.on('close', function() { if(popup === ownPopup) popup = null; if(trigger && trigger.isConnected) trigger.focus({preventScroll:true}); });
+  }
+  function layers() {
+    if (!enabled) return;
+    if (!map.getSource(sourceId)) map.addSource(sourceId, {type:'geojson',data:{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:positions.map(function(p){return p.coordinates;})}}});
+    if (!map.getLayer(lineId)) map.addLayer({id:lineId,type:'line',source:sourceId,paint:{'line-color':'#ffd166','line-width':3,'line-dasharray':[2,2]}});
+    map.setLayoutProperty(lineId,'visibility','visible');
+  }
+  function activate() {
+    enabled = true;
+    content.hidden = false;
+    toggle.textContent = 'Ocultar trayectoria de Otis';
+    toggle.setAttribute('aria-expanded','true');
+    layers();
+    if (!markers.length) positions.forEach(function(p,i) {
+      var el = document.createElement('button');
+      el.type = 'button'; el.className = 'otis-position' + (p.landfall ? ' otis-impact' : '');
+      el.textContent = String(i+1);
+      el.setAttribute('aria-label', (i+1) + '. ' + p.stage + ' · ' + localDate(p));
+      el.addEventListener('click',function(e){ e.stopPropagation(); selectPosition(p,el); });
+      // Arrow points from each observed position toward the next; no extra positions.
+      if(i < positions.length-1) {
+        var next = positions[i+1].coordinates;
+        var angle = Math.atan2((next[0]-p.coordinates[0])*Math.cos(p.coordinates[1]*Math.PI/180), next[1]-p.coordinates[1])*180/Math.PI;
+        var arrow = document.createElement('span'); arrow.className='otis-direction'; arrow.textContent='↑';
+        arrow.setAttribute('aria-hidden','true'); arrow.style.transform='rotate('+angle+'deg)'; el.appendChild(arrow);
+      }
+      markers.push(new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(p.coordinates).addTo(map));
+    });
+  }
+  toggle.addEventListener('click',function(){
+    if(enabled) {
+      enabled=false; closePopup(); markers.forEach(function(m){m.remove();}); markers=[];
+      if(map.getLayer(lineId)) map.setLayoutProperty(lineId,'visibility','none');
+      content.hidden=true; toggle.textContent='Ver trayectoria de Otis'; toggle.setAttribute('aria-expanded','false');
+    } else {
+      activate();
+      map.fitBounds([[-100.7,14.9],[-99.4,18.6]],{padding:{top:130,bottom:70,left:55,right:55},duration:reduced()?0:800});
+    }
+  });
+  panel.querySelector('.otis-landfall').addEventListener('click',function(){
+    activate(); map.flyTo({center:positions[4].coordinates,zoom:11,duration:reduced()?0:800});
+    selectPosition(positions[4],this);
+  });
+  positions.forEach(function(p,i){
+    var li=document.createElement('li'), button=document.createElement('button'); button.type='button';
+    button.innerHTML='<span class="otis-step-number">'+(i+1)+'</span><span><strong>'+p.stage+'</strong><small>'+localDate(p)+'</small></span><span class="otis-step-wind">'+Math.round(p.windKt*1.852)+'<small>km/h</small></span>';
+    button.setAttribute('aria-pressed','false');
+    button.addEventListener('click',function(){map.easeTo({center:p.coordinates,duration:reduced()?0:400});selectPosition(p,button);});
+    li.appendChild(button); panel.querySelector('ol').appendChild(li);
+  });
+  panel.querySelector('.otis-overview').addEventListener('click', function(){ map.fitBounds([[-100.7,14.9],[-99.4,18.6]],{padding:{top:130,bottom:70,left:55,right:55},duration:reduced()?0:800}); });
+  panel.querySelectorAll('[data-otis-base]').forEach(function(button){
+    button.addEventListener('click',function(){
+      panel.querySelectorAll('[data-otis-base]').forEach(function(other){other.setAttribute('aria-pressed',String(other===button));});
+      map.once('style.load',function(){ if(!map.getSource('sounds')) {addMapLayers(); applyFilter();} layers(); });
+      map.setStyle(STYLES[button.dataset.otisBase], {diff:false});
+    });
+  });
+  // Rebuild only this overlay after a style change; bind handlers just once.
+  map.on('style.load',layers);
+  map.on('load',layers);
+})();
+
 };

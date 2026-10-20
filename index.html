@@ -1384,7 +1384,61 @@
         display: none;
       }
     }
-  </style>
+
+
+    .otis-track-control { position:absolute; z-index:5; top:12px; left:54px; width:310px; max-width:calc(100% - 240px); color:#e8edf4; font:12px/1.5 system-ui,sans-serif; }
+    .otis-track-control button { cursor:pointer; font:inherit; color:inherit; }
+    .otis-toggle { padding:11px 15px; min-height:44px; border:1px solid #65768b66; border-radius:24px; background:#101923ed; box-shadow:0 4px 18px #0004; backdrop-filter:blur(16px); }
+    .otis-toggle::before { content:'\2197'; color:#ffd166; margin-right:9px; font-size:17px; }
+    .otis-toggle[aria-expanded=true] { border-color:#ffd16688; }
+    .otis-track-control button:focus-visible,.otis-track-control summary:focus-visible,.otis-position:focus-visible { outline:3px solid #58a6ff; outline-offset:3px; }
+    #otis-track-details { background:#101923f5; backdrop-filter:blur(18px); border:1px solid #65768b55; border-radius:16px; padding:16px; margin-top:8px; max-height:62vh; overflow:auto; box-shadow:0 12px 32px #0005; scrollbar-width:thin; }
+    .otis-heading { display:grid; gap:3px; margin-bottom:14px; }
+    .otis-heading>span,.otis-card-eyebrow { font-size:10px; letter-spacing:1.6px; color:#ffd166; font-weight:700; }
+    .otis-heading>strong { font-size:19px; letter-spacing:-.5px; }
+    .otis-heading small { color:#a1afbf; }
+    .otis-actions { display:grid; gap:7px; }
+    .otis-actions button { padding:10px; border:1px solid #62758c66; border-radius:9px; background:#253345; min-height:42px; }
+    .otis-actions .otis-landfall { background:#cf49451c; border-color:#f3747066; color:#ffb4ad; }
+    .otis-basemaps { display:flex; gap:4px; border:0; padding:0; margin:13px 0; }
+    .otis-basemaps legend { color:#a1afbf; margin-bottom:6px; font-size:11px; }
+    .otis-basemaps button { flex:1; padding:7px; min-height:36px; border:1px solid transparent; border-radius:7px; background:#ffffff08; }
+    .otis-basemaps button[aria-pressed=true] { background:#35475a; border-color:#8299ad; }
+    .otis-track-control summary { cursor:pointer; color:#c7d2df; padding:10px 0; border-top:1px solid #ffffff18; }
+    .otis-track-control a,.otis-track-card a { color:#93caff; font-size:11px; }
+    .otis-track-control details>p { font-size:11px; color:#a1afbf; }
+    .otis-position-list { list-style:none; padding:0; margin:0; }
+    .otis-position-list button { width:100%; display:flex; align-items:center; gap:9px; text-align:left; border:1px solid transparent; border-radius:9px; background:transparent; padding:9px 5px; min-height:52px; }
+    .otis-position-list button:hover { background:#ffffff09; }
+    .otis-position-list button[aria-pressed=true] { background:#ffd16612; border-color:#ffd16666; }
+    .otis-step-number { display:grid; place-items:center; flex-shrink:0; width:24px; height:24px; border:1px solid #ffd16688; border-radius:50%; color:#ffd166; }
+    .otis-position-list strong { display:block; font-size:11px; font-weight:600; }
+    .otis-position-list small { display:block; font-size:10px; color:#a1afbf; }
+    .otis-step-wind { margin-left:auto; color:#ffd166; font-size:14px; text-align:right; }
+    .otis-position { width:32px; height:32px; border:2px solid #fbe6b1; border-radius:50%; background:#182633; color:#ffda83; font:bold 12px system-ui; cursor:pointer; box-shadow:0 2px 10px #0007; }
+    .otis-impact { background:#d74742; color:white; border-color:#ffe0dc; }
+    .otis-selected { box-shadow:0 0 0 5px #ffd16655,0 3px 14px #0008; }
+    .otis-direction { position:absolute; left:4px; top:-27px; font-size:25px; color:#ffd166; text-shadow:0 1px 3px black; transform-origin:10px 42px; pointer-events:none; }
+    .otis-popup .maplibregl-popup-content { background:#101923; border:1px solid #71829666; border-radius:14px; box-shadow:0 12px 30px #0006; padding:18px; }
+    .otis-track-card { font:12px/1.6 system-ui; color:#e8edf4; max-height:40vh; overflow:auto; padding:4px; }
+    .otis-track-card h3 { font-size:18px; line-height:1.3; margin:6px 0 12px; letter-spacing:-.4px; }
+    .otis-track-card p { color:#b8c6d5; }
+    .otis-wind { border-top:1px solid #ffffff18; border-bottom:1px solid #ffffff18; padding:10px 0; }
+    .otis-wind strong { font-size:30px; color:#ffd166; letter-spacing:-1px; }
+    .otis-wind strong span { font-size:13px; letter-spacing:0; font-weight:400; }
+    .otis-popup .maplibregl-popup-close-button { min-width:32px; min-height:32px; color:#c7d2df; border-radius:8px; }
+    @media(max-width:768px) {
+      .otis-track-control { top:10px; left:10px; width:310px; max-width:calc(100% - 20px); pointer-events:none; }
+      .otis-toggle { max-width:calc(100% - 150px); font-size:11px; padding:8px 10px; pointer-events:auto; }
+      #otis-track-details { pointer-events:auto; max-height:35vh; padding:12px; }
+      .otis-heading>strong { font-size:17px; }
+      .otis-actions { grid-template-columns:1fr 1fr; }
+      .otis-actions button { font-size:11px; }
+      .otis-track-card { max-height:30vh; }
+      .otis-position { width:36px; height:36px; }
+    }
+
+</style>
 </head>
 <body>
 
@@ -1659,7 +1713,7 @@
 (function () {
   var MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
   var MAPLIBRE_JS = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
-  var MAP_CORE_JS = 'map-core.js?v=otis-landfall-20261020';
+  var MAP_CORE_JS = 'map-core.js?v=otis-track-design-local-20261020';
   var mapAssetsPromise = null;
   var mapCorePromise = null;
   var mapInitPromise = null;
