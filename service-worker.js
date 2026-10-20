@@ -47,6 +47,8 @@ self.addEventListener('fetch', function(event) {
 
   if (url.origin !== self.location.origin) return;
   if (isAudio) return;
+  // Let the browser manage video byte ranges; do not cache a full video response.
+  if (request.destination === 'video' || /\.mp4$/i.test(url.pathname)) return;
 
   if (isHtml) {
     const network = fetch(new Request(request, { cache: 'reload' }))

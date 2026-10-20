@@ -3439,4 +3439,39 @@ document.getElementById('modal-save').addEventListener('click', function() {
   map.on('load',layers);
 })();
 
+/* Optimized satellite video loads only when playback is requested. */
+(function initOtisSatelliteVideo() {
+  var link = document.createElement('button');
+  link.type = 'button';
+  link.className = 'otis-satellite-button';
+  link.textContent = 'Ver Otis desde el satélite';
+  link.setAttribute('aria-haspopup', 'dialog');
+  link.setAttribute('aria-controls', 'otis-satellite-dialog');
+  link.title = 'Imágenes satelitales GOES-18 · CSU/CIRA & NOAA';
+  var controls = document.querySelector('.otis-track-control');
+  controls.insertBefore(link, controls.querySelector('#otis-track-details'));
+  var dialog = document.createElement('dialog');
+  dialog.id = 'otis-satellite-dialog';
+  dialog.setAttribute('aria-labelledby', 'otis-satellite-title');
+  dialog.innerHTML = '<header><h2 id="otis-satellite-title">Otis desde el satélite</h2>' +
+    '<button type="button" class="otis-satellite-close">Cerrar ×</button></header>' +
+    '<video controls playsinline preload="none" aria-label="Imágenes satelitales de Otis, GOES-18 · CSU/CIRA &amp; NOAA"></video>' +
+    '<p class="otis-satellite-error" role="status" hidden>No se pudo cargar el video. Puedes consultar la fuente original.</p>' +
+    '<p>Imágenes satelitales GOES-18 · CSU/CIRA &amp; NOAA. Los colores representan temperaturas de los topes nubosos.</p>' +
+    '<a href="https://satlib.cira.colostate.edu/weather_media/otis-strengthening-and-making-landfall-in-infrared/" target="_blank" rel="noopener noreferrer">Ver fuente</a>';
+  document.body.appendChild(dialog);
+  var video = dialog.querySelector('video');
+  var close = dialog.querySelector('button');
+  link.addEventListener('click', function() {
+    if (dialog.open) return;
+    if (!video.getAttribute('src')) video.src = 'assets/video/otis-goes18-720p.mp4';
+    dialog.showModal();
+    close.focus({preventScroll:true});
+  });
+  close.addEventListener('click', function() { dialog.close(); });
+  dialog.addEventListener('cancel', function(event) { event.preventDefault(); dialog.close(); });
+  dialog.addEventListener('close', function() { video.pause(); link.focus({preventScroll:true}); });
+  video.addEventListener('error', function() { dialog.querySelector('.otis-satellite-error').hidden = false; });
+})();
+
 };

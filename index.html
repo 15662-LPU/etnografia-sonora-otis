@@ -1438,6 +1438,21 @@
       .otis-position { width:36px; height:36px; }
     }
 
+    .otis-track-control .otis-satellite-button { display:block; width:fit-content; box-sizing:border-box; margin-top:7px; padding:10px 14px; min-height:44px; border:1px solid #65768b66; border-radius:24px; background:#101923; color:#e8edf4; box-shadow:0 4px 18px #0004; pointer-events:auto; text-decoration:none; font:inherit; }
+    .otis-track-control .otis-satellite-button:hover { border-color:#93caff; color:#93caff; }
+    .otis-track-control .otis-satellite-button:focus-visible { outline:3px solid #58a6ff; outline-offset:3px; }
+    @media(max-width:768px) { .otis-track-control .otis-satellite-button { max-width:100%; font-size:11px; } }
+
+    #otis-satellite-dialog { box-sizing:border-box; width:min(620px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; padding:18px; border:1px solid #65768b88; border-radius:16px; background:#101923; color:#e8edf4; box-shadow:0 16px 50px #0008; font:12px/1.6 system-ui,sans-serif; }
+    #otis-satellite-dialog::backdrop { background:transparent; }
+    #otis-satellite-dialog header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    #otis-satellite-dialog h2 { font-size:17px; margin:0; }
+    .otis-satellite-close { min-height:44px; padding:8px 12px; border:1px solid #65768b88; border-radius:9px; background:#253345; color:#e8edf4; cursor:pointer; }
+    #otis-satellite-dialog video { display:block; width:100%; height:auto; max-height:60dvh; object-fit:contain; background:#000; }
+    #otis-satellite-dialog a { color:#93caff; }
+    #otis-satellite-dialog :focus-visible { outline:3px solid #58a6ff; outline-offset:3px; }
+    .otis-satellite-error { color:#ffb4ad; }
+    @media(max-width:768px) { #otis-satellite-dialog { padding:12px; } }
 </style>
 </head>
 <body>
@@ -1713,7 +1728,7 @@
 (function () {
   var MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
   var MAPLIBRE_JS = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
-  var MAP_CORE_JS = 'map-core.js?v=otis-track-design-local-20261020';
+  var MAP_CORE_JS = 'map-core.js?v=otis-satellite-optimized-local-20261020';
   var mapAssetsPromise = null;
   var mapCorePromise = null;
   var mapInitPromise = null;
