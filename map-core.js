@@ -433,7 +433,7 @@ var SOUND_POINTS = [
     date: 'Oct 2023',
     duration: '--:--',
     tags: ['autoetnografia', 'impacto', 'Otis', 'costa', 'Guerrero'],
-    coords: [-99.76, 16.79],
+    coords: [-99.9, 16.8],
     spotify: null,
     audio: 'puntocero-otis-mezcla1.mp3',
     audio_mobile: 'puntocero-otis-mezcla1.mp3',
